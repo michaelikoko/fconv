@@ -7,6 +7,7 @@ const LOGS = [
 ]*/
 
 import { useEffect, useRef } from "react"
+import { useConversionStore } from "../store/conversionStore"
 
 const LEVEL_STYLE: Record<string, string> = {
   info:    'text-info',
@@ -15,17 +16,9 @@ const LEVEL_STYLE: Record<string, string> = {
   default: 'text-neutral-content',
 }
 
-export interface LogEntry {
-  time: string
-  message: string
-  level: string
-}
 
-interface ActivityLogProps {
-  logs: LogEntry[]
-}
-
-export default function ActivityLog({ logs }: ActivityLogProps) {
+export default function ActivityLog() {
+  const { logs } = useConversionStore()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

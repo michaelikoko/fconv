@@ -1,29 +1,21 @@
 import { FileX, FolderOpen, RotateCcw } from "lucide-react"
-import type { ConversionResult } from "../App"
+import { useConversionStore } from "../store/conversionStore"
 
-interface ResultPanelProps {
-    result: Exclude<ConversionResult, null>
-    onConvertAnother: () => void
-    onClearBuffer: () => void
-}
+export default function ResultPanel() {
+  const { conversionResult, reset, clearAndReset } = useConversionStore()
 
-export default function ResultPanel({
-    result,
-    onConvertAnother,
-    onClearBuffer,
-}: ResultPanelProps) {
-    const isDone = result.status === 'done'
-    const isCancelled = result.status === 'cancelled'
-    const isError = result.status === 'error'
+  const isDone = conversionResult?.status === 'done'
+  const isCancelled = conversionResult?.status === 'cancelled'
+  const isError = conversionResult?.status === 'error'
 
-    const outPath = isDone ? result.outputPath : null
-    const outName = outPath?.split('/').pop() ?? null
+  const outPath = isDone ? conversionResult?.outputPath : null
+  const outName = outPath?.split('/').pop() ?? null
 
-    const handleShowInFolder = async () => {
-        if (outPath) await window.showFileInFolder(outPath)
-    }
+  const handleShowInFolder = async () => {
+    if (outPath) await window.showFileInFolder(outPath)
+  }
 
-      const borderClass = isDone
+  const borderClass = isDone
     ? 'border-success/30 bg-success/5'
     : 'border-error/30 bg-error/5'
 
@@ -32,8 +24,8 @@ export default function ResultPanel({
   const statusLabel = isDone
     ? 'CONVERSION_COMPLETE'
     : isCancelled
-    ? 'CONVERSION_CANCELLED'
-    : 'CONVERSION_FAILED'
+      ? 'CONVERSION_CANCELLED'
+      : 'CONVERSION_FAILED'
 
   const retryLabel = isDone ? 'CONVERT_ANOTHER' : 'TRY_AGAIN'
 
@@ -57,7 +49,7 @@ export default function ResultPanel({
 
         {isError && (
           <p className="text-neutral-content font-mono text-[10px] tracking-wider mt-1">
-            {result.message}
+            {conversionResult ? conversionResult.message : 'An unknown error occurred during conversion.'}
           </p>
         )}
 
@@ -83,7 +75,7 @@ export default function ResultPanel({
         )}
 
         <button
-          onClick={onConvertAnother}
+          onClick={reset}
           className="w-full flex items-center justify-center gap-2
                      bg-primary hover:bg-primary/90 text-primary-content
                      font-mono font-bold text-xs tracking-[0.15em] py-3
@@ -94,7 +86,7 @@ export default function ResultPanel({
         </button>
 
         <button
-          onClick={onClearBuffer}
+          onClick={clearAndReset}
           className="w-full flex items-center justify-center gap-2
                      border border-base-300 text-neutral-content
                      font-mono font-bold text-xs tracking-[0.15em] py-3

@@ -1,9 +1,8 @@
 import { Settings2 } from 'lucide-react'
 import { useState } from 'react'
-import type { ConversionResult, FilePath, FileType } from '../App'
-import type { LogEntry } from './ActivityLog'
 import { formatFileSize, now } from '../utils/fileType'
 import ResultPanel from './ResultPanel'
+import { useConversionStore } from '../store/conversionStore'
 
 const FORMAT_GROUPS = [
   { label: 'FORMAT // VIDEO', formats: ['.MP4', '.MKV', '.MOV', '.AVI', '.WEBM'], type: 'video' },
@@ -11,33 +10,16 @@ const FORMAT_GROUPS = [
   { label: 'FORMAT // IMAGE', formats: ['.JPG', '.PNG', '.GIF', '.WEBP'], type: 'image' },
 ]
 
-interface OutputConfigProps {
-  fileType: FileType,
-  filePath: FilePath,
-  isConverting: boolean
-  conversionResult: ConversionResult
-  onConversionStart: () => void
-  onConvertAnother: () => void
-  onClearBuffer: () => void
-  appendLog: (entry: LogEntry) => void
-}
-
-export default function OutputConfig({
-  fileType,
-  filePath,
-  isConverting,
-  conversionResult,
-  onConversionStart,
-  onConvertAnother,
-  onClearBuffer,
-  appendLog,
-}: OutputConfigProps) {
+export default function OutputConfig() {
   const [selected, setSelected] = useState<string | null>(null)
+
+  const {filePath, fileType, isConverting, conversionResult, startConversion, appendLog } = useConversionStore()
 
   const handleInitializeConversion = async () => {
     if (!selected || !filePath || isConverting) return
 
-    onConversionStart()
+    // Start conversion and log initial info
+    startConversion()
     appendLog({
       time: now(),
       message: `FILE: ${filePath.path.split('/').pop()} (${formatFileSize(filePath.size)})`,
@@ -64,11 +46,7 @@ export default function OutputConfig({
       </div>
 
       {conversionResult ? (
-        <ResultPanel
-          result={conversionResult}
-          onConvertAnother={onConvertAnother}
-          onClearBuffer={onClearBuffer}
-        />
+        <ResultPanel />
       ) : (
         <>
           <div className="flex-1 px-5 py-4 space-y-5 overflow-y-auto">

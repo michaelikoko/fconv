@@ -1,30 +1,18 @@
+import { useConversionStore } from "../store/conversionStore"
 import { formatTime } from "../utils/fileType"
 
-interface ProgressBarProps {
-  percent: number
-  speed: string
-  estimatedRemainingTime: number
-  isConverting: boolean
-  //onCancel?: () => void
-}
-
-export default function ProgressBar({
-  percent,
-  speed,
-  estimatedRemainingTime,
-  isConverting,
-//onCancel,
-}: ProgressBarProps) {
+export default function ProgressBar() {
+  const {progress, speed, estimatedRemainingTime, isConverting} = useConversionStore()
   return (
     <div className="flex items-center gap-4 px-4 py-3 border-t border-base-300 bg-base-100 shrink-0">
       <span className="text-primary font-mono font-bold text-sm w-12 shrink-0">
-        {Math.round(percent)}%
+        {Math.round(progress)}%
       </span>
 
       <div className="flex-1 h-0.75 bg-base-300 relative overflow-hidden">
         <div
           className="absolute inset-y-0 left-0 bg-primary transition-all duration-300"
-          style={{ width: `${percent}%` }}
+          style={{ width: `${progress}%` }}
         />
         {isConverting && (
           <div className="absolute inset-y-0 left-0 right-0 bg-linear-to-r from-transparent via-primary/20 to-transparent animate-pulse" />

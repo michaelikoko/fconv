@@ -1,4 +1,4 @@
-import type { FilePath, FileType } from "../App"
+import type { FilePath, FileType } from "../store/conversionStore" 
 
 export function detectFileType(filePath: FilePath): FileType {
   if (!filePath) return null

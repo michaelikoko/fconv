@@ -1,14 +1,6 @@
 import { FileImageIcon, FileMusicIcon, FileUp, FileVideoCameraIcon } from 'lucide-react'
-import type { FilePath, FileType } from '../App'
-import { formatFileSize } from '../utils/fileType'
-
-interface DropZoneProps {
-  filePath: FilePath,
-  fileType: FileType,
-  handleSetFilePath: (path: FilePath) => void
-  handleClearBuffer: () => void
-  isConverting: boolean
-}
+import { detectFileType, formatFileSize } from '../utils/fileType'
+import { type FileType, useConversionStore } from '../store/conversionStore'
 
 function CornerLabels({ fileSize }: { fileSize: number | null }) {
   return (
@@ -45,17 +37,16 @@ function getFileTypeIcon(fileType: FileType, converting: boolean) {
   return <FileUp size={40} strokeWidth={1} className={cls} />
 }
 
-export default function DropZone({
-  filePath,
-  fileType,
-  handleSetFilePath,
-  handleClearBuffer,
-  isConverting
-}: DropZoneProps) {
+export default function DropZone() {
+
+  const {fileType, filePath, isConverting, setFilePath, clearBuffer} = useConversionStore()
 
   const handleDropZoneClick = async () => {
     const filePathResult = await window.openFile()
-    handleSetFilePath(filePathResult || null)
+    if (filePathResult) {
+      const fileTypeResult = detectFileType(filePathResult)
+      setFilePath(filePathResult, fileTypeResult)
+    }
   }
 
 
@@ -81,12 +72,12 @@ export default function DropZone({
 
           {!isConverting && (
             <button
-              onClick={handleClearBuffer}
+              onClick={clearBuffer}
               className="text-[10px] font-mono tracking-widest text-neutral-content
                          border border-base-300 px-4 py-1.5
                          hover:border-error hover:text-error transition-colors cursor-pointer"
             >
-              × CLEAR_BUFFER
+              x CLEAR_BUFFER
             </button>
           )}
         </div>

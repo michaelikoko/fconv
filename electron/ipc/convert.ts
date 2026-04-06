@@ -1,0 +1,140 @@
+import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent } from 'electron'
+import { spawn, ChildProcess } from 'node:child_process'
+import { getFFmpegPath } from '../utils/ffmpeg'
+import {
+  resolveOutputPath,
+  parseDuration,
+  parseCurrentTime,
+  calcPercent,
+  shouldLog,
+  formatLogMessage,
+} from '../utils/ffmpeg'
+
+// Tracks the active FFmpeg process so it can be killed on cancel.
+// Module-scoped so both handlers share the same reference.
+let activeFFmpegProcess: ChildProcess | null = null
+
+/**
+ * Spawns an FFmpeg process to convert inputPath to outputFormat.
+ *
+ * Emits to renderer via webContents.send:
+ *   'conversion-progress'  → { percent, speed, estimatedRemainingTime }
+ *   'conversion-log'       → { time, message, level }
+ *   'conversion-done'      → { outputPath }
+ *   'conversion-error'     → { message }
+ *   'conversion-cancelled'   (no payload)
+ */
+async function handleConvertFile(
+  _event: IpcMainInvokeEvent,
+  inputPath: string,
+  outputFormat: string,
+) {
+  const win        = BrowserWindow.getFocusedWindow()!
+  const outputPath = resolveOutputPath(inputPath, outputFormat)
+  const ffmpegPath = getFFmpegPath()
+
+  console.log(`Converting ${inputPath} → ${outputPath}`)
+
+  const child = spawn(ffmpegPath, ['-i', inputPath, outputPath])
+  activeFFmpegProcess = child
+
+  let stderrBuffer = ''
+  let totalDuration = 0
+
+  child.stderr.on('data', (data: Buffer) => {
+    stderrBuffer += data.toString()
+
+    // Split on all line ending styles — FFmpeg uses \r for in-place progress updates
+    const lines = stderrBuffer.split(/\r\n|\r|\n/)
+    stderrBuffer = lines.pop() ?? '' // keep the last incomplete line in the buffer
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+
+      // Forward filtered, formatted lines to the activity log
+      if (shouldLog(trimmed)) {
+        const { message, level } = formatLogMessage(trimmed)
+        win.webContents.send('conversion-log', {
+          time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+          message,
+          level,
+        })
+      }
+
+      // Parse total duration once — used for percent and ETA calculation
+      if (totalDuration === 0) {
+        const duration = parseDuration(trimmed)
+        if (duration !== null) {
+          totalDuration = duration
+          console.log('Total duration:', totalDuration, 'seconds')
+        }
+      }
+
+      // Parse incremental progress and send to renderer
+      if (trimmed.includes('time=') && totalDuration > 0) {
+        const current = parseCurrentTime(trimmed)
+        if (current !== null) {
+          const percent    = calcPercent(current, totalDuration)
+          const speedMatch = trimmed.match(/speed=\s*(\S+)/)
+          const speed      = speedMatch ? speedMatch[1] : '—'
+
+          // ETA = remaining media seconds / speed ratio
+          const speedNum               = parseFloat(speed.replace(/x$/, '')) || 0
+          const remainingMedia         = totalDuration * (1 - percent / 100)
+          const estimatedRemainingTime = speedNum > 0 ? remainingMedia / speedNum : 0
+
+          win.webContents.send('conversion-progress', { percent, speed, estimatedRemainingTime })
+        }
+      }
+    }
+  })
+
+  child.on('close', (code, signal) => {
+    activeFFmpegProcess = null
+
+    // SIGKILL means the user confirmed cancellation via handleCancelConversion
+    if (signal === 'SIGKILL') {
+      console.log('Conversion cancelled by user.')
+      win.webContents.send('conversion-cancelled')
+      return
+    }
+
+    if (code === 0) {
+      win.webContents.send('conversion-done', { outputPath })
+    } else {
+      win.webContents.send('conversion-error', {
+        message: `FFmpeg exited with code ${code}`,
+      })
+    }
+  })
+}
+
+async function handleCancelConversion() {
+  if (!activeFFmpegProcess) return { cancelled: false }
+
+  const win = BrowserWindow.getFocusedWindow()!
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'warning',
+    title: 'Cancel Conversion',
+    message: 'Are you sure you want to cancel?',
+    detail: 'The output file will be incomplete.',
+    buttons: ['Yes, Cancel', 'Keep Going'],
+    defaultId: 1, // default to "Keep Going" — safer against accidental clicks
+    cancelId: 1,
+  })
+
+  // response 0 = "Yes, Cancel", response 1 = "Keep Going"
+  if (response === 0) {
+    activeFFmpegProcess.kill('SIGKILL')
+    return { cancelled: true }
+  }
+
+  return { cancelled: false }
+}
+
+
+export function registerConvertHandlers() {
+  ipcMain.handle('convert-file',      handleConvertFile)
+  ipcMain.handle('cancel-conversion', handleCancelConversion)
+}
