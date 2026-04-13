@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { registerAllHandlers } from './ipc/index'
+import { stopTransferServer } from './ipc/transfer'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -34,7 +35,7 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.mjs')
     },
   })
 
@@ -55,7 +56,8 @@ function createWindow() {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
+  await stopTransferServer()
   if (process.platform !== 'darwin') {
     app.quit()
     win = null
@@ -69,6 +71,6 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
-  registerAllHandlers() // All IPC handlers in /electron/ipc
+  registerAllHandlers() // All IPC handlers in /electron/ipc and start the transfer server
   createWindow()
 })
