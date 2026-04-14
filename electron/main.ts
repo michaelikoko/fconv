@@ -73,4 +73,5 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   registerAllHandlers() // All IPC handlers in /electron/ipc and start the transfer server
   createWindow()
+  
 })

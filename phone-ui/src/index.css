@@ -1,0 +1,105 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg:       #0b0b0b;
+  --surface:  #131313;
+  --surface2: #1a1a1a;
+  --border:   #252525;
+  --border2:  #333333;
+  --text:     #efefef;
+  --muted:    #555555;
+  --primary:  #ff5500;
+  --success:  #00e676;
+  --error:    #ff3d3d;
+  --warning:  #ffd600;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/*@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "fconv";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(11% 0 0);
+  --color-base-200: oklch(14% 0 0);
+  --color-base-300: oklch(17% 0 0);
+  --color-base-content: oklch(94% 0 0);
+
+  --color-primary: oklch(58% 0.2 38);
+  --color-primary-content: oklch(100% 0 0);
+
+  --color-secondary: oklch(20% 0 0);
+  --color-secondary-content: oklch(94% 0 0);
+
+  --color-accent: oklch(83% 0.2 155);
+  --color-accent-content: oklch(11% 0 0);
+
+  --color-neutral: oklch(22% 0 0);
+  --color-neutral-content: oklch(45% 0 0);
+
+  --color-info: oklch(65% 0.15 230);
+  --color-info-content: oklch(98% 0 0);
+  --color-success: oklch(83% 0.2 155);
+  --color-success-content: oklch(11% 0 0);
+  --color-warning: oklch(85% 0.2 90);
+  --color-warning-content: oklch(11% 0 0);
+  --color-error: oklch(60% 0.25 25);
+  --color-error-content: oklch(98% 0 0);
+
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+
+* {
+  font-family: 'JetBrains Mono', monospace;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: oklch(11% 0 0);
+}
+*/
+
+/* Thin scrollbars */ /*
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: oklch(22% 0 0); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(30% 0 0); }
+*/
+/* Drag region for frameless window */ /*
+.drag-region { -webkit-app-region: drag; }
+.no-drag     { -webkit-app-region: no-drag; }
+*/

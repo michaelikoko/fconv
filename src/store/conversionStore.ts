@@ -1,4 +1,3 @@
-// src/store/conversionStore.ts
 import { create } from 'zustand'
 import { now } from '../utils/fileType';
 

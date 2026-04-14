@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import { app } from 'electron'
 
 
-export function resolveOutputPath(inputPath: string, outputFormat: string): string {
-  const dir  = path.dirname(inputPath)
+export function resolveOutputPath(inputPath: string, outputFormat: string, directory: string | null = null): string {
+  const dir  = directory || path.dirname(inputPath)
   const stem = path.basename(inputPath, path.extname(inputPath))
   const ext  = outputFormat.startsWith('.') ? outputFormat : `.${outputFormat}`
 

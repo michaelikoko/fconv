@@ -23,9 +23,11 @@ declare namespace NodeJS {
 
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
-  ipcRenderer: import('electron').IpcRenderer,
-  openFile: () => Promise<{ path: string; size: number } | undefined>,
+  ipcRenderer: import('electron').IpcRenderer
+  openFile: () => Promise<{ path: string; size: number } | undefined>
   convertFile: (inputPath: string, outputFormat: string) => Promise<void>
   showFileInFolder: (filePath: string) => Promise<void>
   cancelConversion: () => Promise<{ cancelled: boolean }>
+  stageFile: () => Promise<import('./ipc/transfer').StagedFile[] | null>
+  unstageFile: (id: import('crypto').UUID) => Promise<void>
 }

@@ -42,3 +42,13 @@ contextBridge.exposeInMainWorld('cancelConversion', async () => {
   const result = await ipcRenderer.invoke('cancel-conversion')
   return result  
 })
+
+contextBridge.exposeInMainWorld('stageFile', async () => {
+  const result = await ipcRenderer.invoke('transfer:stage-file')
+  return result  
+})
+
+contextBridge.exposeInMainWorld('unstageFile', async (id: string) => {
+  const result = await ipcRenderer.invoke('transfer:unstage-file', id)
+  return result  
+})

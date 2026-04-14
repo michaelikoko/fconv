@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { registerConvertHandlers } from './convert'
 import { registerFileHandlers }    from './files'
-import { onTransferEvent, startTransferServer } from './transfer'
+import { onTransferEvent, registerTransferHandlers, startTransferServer } from './transfer'
 // import { registerTransferHandlers } from './transfer'  ← Stage 3
 // import { registerLibreOfficeHandlers } from './libreoffice'  ← later
 
@@ -12,6 +12,7 @@ import { onTransferEvent, startTransferServer } from './transfer'
 export function registerAllHandlers() {
   registerConvertHandlers()
   registerFileHandlers()
+  registerTransferHandlers()  
   startTransferServer()
 
   onTransferEvent((event, data) => {
