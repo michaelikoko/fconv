@@ -1,11 +1,12 @@
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { useTransferStore, ReceivedFile } from '../store/transferStore' 
-import { FilePath, useConversionStore } from '../store/conversionStore' 
+import { useTransferStore, ReceivedFile } from '../store/transferStore'
+import { FilePath, useConversionStore } from '../store/conversionStore'
 import { detectFileType, formatFileSize, getFileIcon } from '../utils/fileType'
+import { useNavigate } from 'react-router'
 
 function timeAgo(date: Date): string {
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (secs < 60)  return `${secs}S AGO`
+  const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+  if (secs < 60) return `${secs}S AGO`
   if (secs < 3600) return `${Math.floor(secs / 60)}M AGO`
   return `${Math.floor(secs / 3600)}H AGO`
 }
@@ -17,23 +18,20 @@ interface ReceivedFileRowProps {
 
 function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
   const Icon = getFileIcon(file.name)
+  const navigate = useNavigate()
   const { setFilePath } = useConversionStore()
 
   const handleShowInFolder = async () => {
-    await window.ipcRenderer.invoke('show-file-in-folder', file.savedPath)
+    // Show the received file in the system file explorer
+    //await window.ipcRenderer.invoke('show-file-in-folder', file.savedPath)
+    await window.showFileInFolder(file.savedPath)
   }
 
   const handleConvert = () => {
-    // Load file into conversion store and navigate to convert screen
-    const fileObj: FilePath = {
-        path: file.savedPath,
-        size: file.size
-    }
-    setFilePath(
-      fileObj,
-      detectFileType(fileObj),
-    )
-    window.ipcRenderer.invoke('navigate', '/')
+    // Prepare file info for conversion page and navigate there
+    const fileObj: FilePath = { path: file.savedPath, size: file.size }
+    setFilePath(fileObj, detectFileType(fileObj))
+    navigate('/')
   }
 
   if (compact) {
@@ -62,7 +60,6 @@ function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
           {formatFileSize(file.size)} · {timeAgo(file.receivedAt)}
         </p>
       </div>
-      {/* Actions — visible on hover */}
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button
           onClick={handleShowInFolder}
@@ -89,12 +86,16 @@ function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
 
 interface ReceivedFileListProps {
   compact?: boolean
+  maxItems?: number   // limits display — used for the right panel ticker
 }
 
-export default function ReceivedFileList({ compact }: ReceivedFileListProps) {
-  const receivedFiles = useTransferStore((s) => s.receivedFiles)
-
-  if (receivedFiles.length === 0) {
+export default function ReceivedFileList({ compact, maxItems }: ReceivedFileListProps) {
+  //const allFiles     = useTransferStore((s) => s.receivedFiles)
+  const { receivedFiles } = useTransferStore()
+  const allFiles = Array.from(receivedFiles.values())
+  const receivedFilesArray = maxItems ? allFiles.slice(0, maxItems) : allFiles
+  //console.log(receivedFilesArray)
+  if (receivedFilesArray.length === 0) {
     return (
       <div className={`flex flex-col items-center justify-center gap-2
                        ${compact ? 'py-4' : 'flex-1 py-8'}`}>
@@ -112,8 +113,8 @@ export default function ReceivedFileList({ compact }: ReceivedFileListProps) {
 
   return (
     <div className={compact ? '' : 'flex-1 overflow-y-auto'}>
-      {receivedFiles.map((file, i) => (
-        <ReceivedFileRow key={`${file.name}-${i}`} file={file} compact={compact} />
+      {receivedFilesArray.map((file, i) => (
+        <ReceivedFileRow key={`${file.id}-${i}`} file={file} compact={compact} />
       ))}
     </div>
   )

@@ -1,16 +1,18 @@
 import { X } from 'lucide-react'
 import { useTransferStore, StagedFile } from '../store/transferStore'
 import { formatFileSize, getFileIcon } from '../utils/fileType'
-
-
+import crypto from 'crypto'
 
 function StagedFileRow({ file }: { file: StagedFile }) {
-  const removeStagedFile = useTransferStore((s) => s.removeStagedFile)
+  //const removeStagedFile = useTransferStore((s) => s.removeStagedFile)
+  const { removeStagedFile } = useTransferStore()
   const Icon = getFileIcon(file.name)
 
   const handleRemove = async () => {
-    await window.ipcRenderer.invoke('transfer:unstage-file', file.id)
-    removeStagedFile(file.id)
+    // Unstage on the backend first, then remove from store
+    //await window.ipcRenderer.invoke('transfer:unstage-file', file.id)
+    await window.unstageFile(file.id)
+    removeStagedFile(file.id as crypto.UUID)
   }
 
   return (
@@ -38,11 +40,12 @@ function StagedFileRow({ file }: { file: StagedFile }) {
 }
 
 export default function StagedFileList() {
-  const stagedFiles = useTransferStore((s) => s.stagedFiles)
-
-  if (stagedFiles.length === 0) {
+  //const stagedFiles = useTransferStore((s) => s.stagedFiles)
+  const {stagedFiles} = useTransferStore()
+  
+  if (stagedFiles.size === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-2 py-8">
+      <div className="flex flex-col items-center justify-center gap-2 py-8">
         <span className="text-neutral-content font-mono text-[10px] tracking-widest">
           NO_FILES_STAGED
         </span>
@@ -54,8 +57,8 @@ export default function StagedFileList() {
   }
 
   return (
-    <div className="overflow-y-auto" style={{ maxHeight: '220px' }}>
-      {stagedFiles.map((file) => (
+    <div className="overflow-y-auto" style={{ maxHeight: '180px' }}>
+      {Array.from(stagedFiles.values()).map((file) => (
         <StagedFileRow key={file.id} file={file} />
       ))}
     </div>

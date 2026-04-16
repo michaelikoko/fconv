@@ -1,20 +1,21 @@
-//import { ArrowLeftRight, FolderOpen, Plus, X, RefreshCw, Smartphone } from 'lucide-react'
 import { ArrowLeftRight, Plus, Smartphone } from 'lucide-react'
 import { useTransferStore } from '../store/transferStore'
-import { PORT } from '../../electron/ipc/transfer'
 import QRPanel from '../components/QRPanel'
 import StagedFileList from '../components/StagedFileList'
 import ReceivedFileList from '../components/ReceivedFileList'
+import SentFileList from '../components/SentFileList'
 
 export default function TransferPage() {
-  const { localIP, isServerRunning, connectedClients, stagedFiles } = useTransferStore()
+  const { localIP, isServerRunning, connectedClients, stagedFiles, port } = useTransferStore()
 
   const handleStageFiles = async () => {
-    const result = await window.stageFile()
-    if (!result) return
+    // Just invoke — useTransferEvents handles adding to store via 'transfer:files-staged' event
+    // Do NOT also add from the return value — that causes the double-add bug
+    console.log('staging file')
+    await window.stageFile()
   }
 
-  const serverUrl = `http://${localIP}:${PORT}`
+  const serverUrl = `http://${localIP}:${port}`
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -31,16 +32,18 @@ export default function TransferPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {/* Server status */}
             <div className="flex items-center gap-1.5">
               <div className={`w-1.5 h-1.5 rounded-full ${isServerRunning ? 'bg-success' : 'bg-error'}`} />
               <span className="text-[9px] font-mono text-neutral-content tracking-widest">
                 {isServerRunning ? 'SERVER_ONLINE' : 'SERVER_OFFLINE'}
               </span>
             </div>
-            {/* Connected clients */}
             <div className="flex items-center gap-1.5">
-              <Smartphone size={11} className={connectedClients > 0 ? 'text-success' : 'text-neutral-content'} strokeWidth={1.5} />
+              <Smartphone
+                size={11}
+                className={connectedClients > 0 ? 'text-success' : 'text-neutral-content'}
+                strokeWidth={1.5}
+              />
               <span className="text-[9px] font-mono text-neutral-content tracking-widest">
                 {connectedClients}_DEVICE{connectedClients !== 1 ? 'S' : ''}
               </span>
@@ -48,12 +51,13 @@ export default function TransferPage() {
           </div>
         </div>
 
-        {/* Staged files section */}
-        <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Scrollable content */}
+        <div className="flex flex-col flex-1 overflow-y-auto">
 
+          {/* ── STAGED FOR PHONE ── */}
           <div className="flex items-center justify-between px-5 py-2.5 border-b border-base-300 shrink-0">
             <span className="text-[9px] font-mono text-neutral-content tracking-[0.2em]">
-              STAGED_FOR_PHONE — {stagedFiles.length}_ITEMS
+              STAGED_FOR_PHONE — {stagedFiles.size}_ITEMS
             </span>
             <button
               onClick={handleStageFiles}
@@ -68,7 +72,17 @@ export default function TransferPage() {
 
           <StagedFileList />
 
-          {/* Divider */}
+          {/* ── SENT TO PHONE (download history) ── */}
+          <div className="flex items-center gap-3 px-5 py-2 border-y border-base-300 shrink-0 bg-base-200">
+            <span className="text-[9px] font-mono text-neutral-content tracking-[0.2em]">
+              SENT_TO_PHONE
+            </span>
+            <div className="flex-1 h-px bg-base-300" />
+          </div>
+
+          <SentFileList />
+
+          {/* ── RECEIVED FROM PHONE ── */}
           <div className="flex items-center gap-3 px-5 py-2 border-y border-base-300 shrink-0 bg-base-200">
             <span className="text-[9px] font-mono text-neutral-content tracking-[0.2em]">
               RECEIVED_FROM_PHONE
@@ -102,15 +116,15 @@ export default function TransferPage() {
         {/* QR code */}
         <QRPanel url={serverUrl} />
 
-        {/* Received queue — compact view */}
-        <div className="border-t border-base-300 px-5 py-3 shrink-0">
+        {/* Recent received — last 3 only, acts as a live ticker */}
+        <div className="border-t border-base-300 px-5 py-2.5 shrink-0">
           <span className="text-[9px] font-mono text-neutral-content tracking-[0.2em]">
             RECEIVED_QUEUE
           </span>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <ReceivedFileList compact />
+          <ReceivedFileList compact maxItems={3} />
         </div>
 
       </div>

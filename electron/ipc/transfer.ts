@@ -1,4 +1,4 @@
-import express, { Response } from 'express'
+import express, { type Response } from 'express'
 import { Server } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import path from 'node:path'
@@ -8,6 +8,7 @@ import multer from 'multer'
 import { BrowserWindow, dialog, app as electronApp, ipcMain, IpcMainInvokeEvent } from 'electron'
 import crypto from 'crypto'
 import { resolveOutputPath } from '../utils/ffmpeg'
+import { isValidUUID } from '../utils/ffmpeg' 
 
 export interface StagedFile {
     // Represents a file staged to be transferred to the phone, with a unique ID and its original path on the desktop
@@ -26,7 +27,25 @@ export interface ReceivedFile {
     receivedAt: Date
 }
 
-const stagedFiles = new Map<string, StagedFile>()
+export interface SentFile {
+    // Represents a file that was sent to the phone and successfully downloaded
+    id: crypto.UUID
+    name: string
+    size: number
+    downloadedAt: Date
+
+    // Rewrite later using Omit<ReceivedFile, 'savedPath' | 'receivedAt'> to avoid redundancy
+}
+
+// Can't use Promise.withResolver because of TypeScript version(requires 5.7), later change the version and refactor the syntax
+//let serverReady: Promise<{ ip: string, port: number }>
+let outerResolveServerReady: (value: { ip: string, port: number }) => void
+
+export const serverReady = new Promise((resolve) => {
+    outerResolveServerReady = resolve
+})
+
+const stagedFiles = new Map<crypto.UUID, StagedFile>()
 
 export async function handleStageFile(): Promise<StagedFile[] | null> {
     // Function to stage a file for transfer, generating a unique ID and storing its metadata
@@ -48,12 +67,13 @@ export async function handleStageFile(): Promise<StagedFile[] | null> {
         stagedFiles.set(id, stagedFile)
         return stagedFile
     })
+    console.log(`Staged files:`, staged)
 
     broadcastEvent('files-staged', { files: staged })
     return staged
 }
 
-export function handleUnstageFile(_event: IpcMainInvokeEvent ,id: crypto.UUID) {
+export function handleUnstageFile(_event: IpcMainInvokeEvent, id: crypto.UUID) {
     stagedFiles.delete(id)
     broadcastEvent('files-unstaged', { id })
 }
@@ -73,8 +93,11 @@ export function onTransferEvent(cb: EventCallback) {
 // 2. 'transfer:files-received' when new files are received from the phone
 // 3. 'transfer:files-unstaged' when a file is unstaged for transfer
 // 4. 'transfer:client-connected' when a new client connects to the SSE stream
-// 5. 'transfer:server-ready' when the transfer server starts and is ready to accept connections
-export function broadcastEvent(event: 'files-staged' | 'files-received' | 'files-unstaged' | 'client-connected', data: { files: StagedFile[] | ReceivedFile[] } | { id: crypto.UUID } | { count: number }) {
+// 5. 'transfer:server-ready' when the transfer server starts and is ready to accept connections. Sent directly in main.ts after server is ready, not emitted through broadcastEvent
+// 6. 'transfer:file-downloaded' when a staged file is successfully downloaded by the phone and can be removed from the staged files registry
+// 7. 'transfer:upload-progress' when the phone sends percentage progress updates for an ongoing file upload, allowing the desktop app to update progress bars in the UI in real time
+
+export function broadcastEvent(event: 'files-staged' | 'files-received' | 'files-unstaged' | 'client-connected' | 'file-downloaded' | 'upload-progress', data: { files: StagedFile[] | ReceivedFile[] } | { id: crypto.UUID } | { count: number } | { file: SentFile } | { fileName: string, progress: number }) {
     const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
     sseClients.forEach(client => client.write(payload))
     onEventCallback(event, data)  // notify Electron main process
@@ -101,9 +124,14 @@ fs.mkdirSync(RECEIVED_DIRECTORY, { recursive: true })
 const storage = multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, RECEIVED_DIRECTORY),
     filename: (_req, file, cb) => {
-        // Same increment pattern as resolveOutputPath — avoid overwriting existing files
-        const resolvedPath = resolveOutputPath(file.originalname, path.extname(file.originalname), RECEIVED_DIRECTORY)
-        cb(null, resolvedPath)
+        const ext = path.extname(file.originalname)
+        const resolved = resolveOutputPath(
+            path.join(RECEIVED_DIRECTORY, file.originalname),
+            ext,
+            RECEIVED_DIRECTORY,
+        )
+        cb(null, path.basename(resolved))
+        //cb(null, file.originalname)
     },
 })
 
@@ -134,6 +162,14 @@ export function startTransferServer() {
         res.json({ ok: true, received: files })
     })
 
+    app.post('/api/upload/progress', (req, res) => {
+        // Recieve upload progress percent update from phone and broadcast to clients to update progress bars in the UI
+        const { fileName, progress } = req.body
+        console.log(`Received upload progress for ${fileName}: ${progress}%`)
+        //broadcastEvent('upload-progress', { fileName, progress })
+        res.json({ ok: true })
+    })
+
     app.get('/api/files', (_req, res) => {
         const files = [...stagedFiles.values()].map(({ id, name, size }) => ({ id, name, size }))
         res.json(files)
@@ -141,7 +177,15 @@ export function startTransferServer() {
 
     app.get('/api/download/:id', (req, res) => {
         // Serve files from the staged files map based on the unique ID, streaming the file from its original path
-        const file = stagedFiles.get(req.params.id)
+        const fileId = req.params.id
+        // Use type guard to validate string id
+        if (!isValidUUID(fileId)) {
+            console.log(fileId)
+            res.status(400).json({ error: 'Invalid or missing File ID'})
+            return 
+        }
+
+        const file = stagedFiles.get(fileId)
         if (!file) {
             res.status(404).json({ error: 'File not found in registry' })
             return
@@ -150,7 +194,25 @@ export function startTransferServer() {
             res.status(404).json({ error: 'Original file no longer exists' })
             return
         }
-        res.download(file.originalPath, file.name) // streams from original path
+
+        res.download(file.originalPath, file.name, (error) => {
+            if (error) {
+                // Download failed, leave in stage are for retr
+                console.log(`Download error for file ${file.name}:`, error.message)
+                return 
+            }
+
+            stagedFiles.delete(file.id) // Remove from staged files after successful download
+            const sentFile: SentFile = {
+                id: file.id,
+                name: file.name,
+                size: file.size,
+                downloadedAt: new Date(),
+            }
+            broadcastEvent('file-downloaded', { file: sentFile })
+
+            console.log(`File ${file.name} downloaded successfully by phone and removed from staged files`)
+        }) // streams from original path
     })
 
     app.get('/api/events', (req, res) => {
@@ -186,9 +248,8 @@ export function startTransferServer() {
 
     server = app.listen(PORT, () => {
         console.log(`Transfer server is running at http://${getLocalIP()}:${PORT}`)
-        BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('transfer:server-ready', { ip: getLocalIP(), port: PORT })
-        })
+        // Resolve server ready promise
+        outerResolveServerReady({ ip: getLocalIP(), port: PORT })
     })
 
 }

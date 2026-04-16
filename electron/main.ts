@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { registerAllHandlers } from './ipc/index'
-import { stopTransferServer } from './ipc/transfer'
+import { serverReady, stopTransferServer } from './ipc/transfer'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -70,8 +70,14 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   registerAllHandlers() // All IPC handlers in /electron/ipc and start the transfer server
   createWindow()
-  
-})
+
+  const [serverInfo ] = await Promise.all([
+    serverReady,
+    new Promise(resolve => win?.webContents.once('did-finish-load', resolve))
+  ])
+  console.log('Info after promise resolution:', serverInfo)
+  win?.webContents.send('transfer:server-ready', serverInfo)
+}) 
