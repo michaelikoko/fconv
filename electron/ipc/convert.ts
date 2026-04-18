@@ -9,10 +9,33 @@ import {
   shouldLog,
   formatLogMessage,
 } from '../utils/ffmpeg'
+import { getSettings } from './settings'
+import { resolvedOutputDir } from '../utils/settings'
 
 // Tracks the active FFmpeg process so it can be killed on cancel.
 // Module-scoped so both handlers share the same reference.
 let activeFFmpegProcess: ChildProcess | null = null
+
+function buildFFmpegArgs(
+  inputPath: string,
+  outputPath: string
+): string [] {
+  const settings = getSettings()
+  const args: string[] = ['-i', inputPath]
+
+  // Hardware acceleration — prepend -hwaccel auto before -i
+  if (settings.hwAcceleration) {
+    args.unshift('-hwaccel', 'auto')
+  }
+
+  // Thread count — 0 means FFmpeg decides
+  if (settings.threadCount > 0) {
+    args.push('-threads', String(settings.threadCount))
+  }
+
+  args.push(outputPath)
+  return args
+}
 
 /**
  * Spawns an FFmpeg process to convert inputPath to outputFormat.
@@ -29,13 +52,17 @@ async function handleConvertFile(
   inputPath: string,
   outputFormat: string,
 ) {
+  const settings = getSettings()
   const win        = BrowserWindow.getFocusedWindow()!
-  const outputPath = resolveOutputPath(inputPath, outputFormat)
+  const outputDir = resolvedOutputDir(settings, inputPath) // Get output directory based on settings or default to input file's directory
+  const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
   const ffmpegPath = getFFmpegPath()
+  const args       = buildFFmpegArgs(inputPath, outputPath)
 
   console.log(`Converting ${inputPath} → ${outputPath}`)
-
-  const child = spawn(ffmpegPath, ['-i', inputPath, outputPath])
+  console.log(`FFmpeg args: ffmpeg ${args.join(' ')}`)
+  
+  const child = spawn(ffmpegPath, args)
   activeFFmpegProcess = child
 
   let stderrBuffer = ''

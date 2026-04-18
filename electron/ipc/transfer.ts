@@ -78,15 +78,8 @@ export function handleUnstageFile(_event: IpcMainInvokeEvent, id: crypto.UUID) {
     broadcastEvent('files-unstaged', { id })
 }
 
-type EventCallback = (event: string, data: unknown) => void
-
 export const PORT = 3333
 const sseClients = new Set<Response>()
-let onEventCallback: EventCallback
-
-export function onTransferEvent(cb: EventCallback) {
-    onEventCallback = cb
-}
 
 // The  types of events emitted by the transfer channel are:
 // 1. 'transfer:files-staged' when a file is staged for transfer from the desktop app
@@ -100,10 +93,10 @@ export function onTransferEvent(cb: EventCallback) {
 export function broadcastEvent(event: 'files-staged' | 'files-received' | 'files-unstaged' | 'client-connected' | 'file-downloaded' | 'upload-progress', data: { files: StagedFile[] | ReceivedFile[] } | { id: crypto.UUID } | { count: number } | { file: SentFile } | { fileName: string, progress: number }) {
     const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
     sseClients.forEach(client => client.write(payload))
-    onEventCallback(event, data)  // notify Electron main process
-    /*
-    Try replacing the onEventCallback with win.webContents.send(`transfer:${event}`, data) directly 
-    */
+    // Emits to renderer channels on all windows
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send(`transfer:${event}`, data)
+    })
 }
 
 export function getLocalIP(): string {
@@ -160,14 +153,6 @@ export function startTransferServer() {
         broadcastEvent('files-received', { files }) // Event is transfer:files-received for win.webContents.send in index.ts
 
         res.json({ ok: true, received: files })
-    })
-
-    app.post('/api/upload/progress', (req, res) => {
-        // Recieve upload progress percent update from phone and broadcast to clients to update progress bars in the UI
-        const { fileName, progress } = req.body
-        console.log(`Received upload progress for ${fileName}: ${progress}%`)
-        //broadcastEvent('upload-progress', { fileName, progress })
-        res.json({ ok: true })
     })
 
     app.get('/api/files', (_req, res) => {

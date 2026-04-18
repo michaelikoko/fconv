@@ -30,4 +30,7 @@ interface Window {
   cancelConversion: () => Promise<{ cancelled: boolean }>
   stageFile: () => Promise<import('./ipc/transfer').StagedFile[] | null>
   unstageFile: (id: import('crypto').UUID) => Promise<void>
+  getSettings: () => Promise<import('./utils/settings').AppSettings>
+  pickDirectorySettings: (dialogTitle: string) => Promise<string | null>
+  saveSettings: (settings:  import('./utils/settings').AppSettings) => Promise<void>
 }

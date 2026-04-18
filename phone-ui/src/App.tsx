@@ -102,7 +102,6 @@ export default function App() {
           if (!e.lengthComputable) return
           const pct = Math.round((e.loaded / e.total) * 100)
 
-          // Send percentage progress updates for this file to endpoint 
           setUploadingFiles(prev =>
             prev.map(f => f.name === file.name ? { ...f, progress: pct } : f)
           )

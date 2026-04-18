@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
+import type { AppSettings } from './utils/settings'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -30,25 +31,40 @@ contextBridge.exposeInMainWorld('openFile', async () => {
 
 contextBridge.exposeInMainWorld('convertFile', async (inputPath: string, outputFormat: string) => {
   const result = await ipcRenderer.invoke('convert-file', inputPath, outputFormat)
-  return result  
+  return result
 })
 
 contextBridge.exposeInMainWorld('showFileInFolder', async (filePath: string) => {
   const result = await ipcRenderer.invoke('show-file-in-folder', filePath)
-  return result  
+  return result
 })
 
 contextBridge.exposeInMainWorld('cancelConversion', async () => {
   const result = await ipcRenderer.invoke('cancel-conversion')
-  return result  
+  return result
 })
 
 contextBridge.exposeInMainWorld('stageFile', async () => {
   const result = await ipcRenderer.invoke('transfer:stage-file')
-  return result  
+  return result
 })
 
 contextBridge.exposeInMainWorld('unstageFile', async (id: string) => {
   const result = await ipcRenderer.invoke('transfer:unstage-file', id)
-  return result  
+  return result
+})
+
+contextBridge.exposeInMainWorld('getSettings', async () => {
+  const result = await ipcRenderer.invoke('settings:get')
+  return result
+})
+
+contextBridge.exposeInMainWorld('pickDirectorySettings', async (dialogTitle: string) => {
+  const result = await ipcRenderer.invoke('settings:pick-directory', dialogTitle)
+  return result
+})
+
+contextBridge.exposeInMainWorld('saveSettings', async (settings: AppSettings) => {
+  const result = await ipcRenderer.invoke('settings:save', settings)
+  return result
 })
