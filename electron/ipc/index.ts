@@ -3,6 +3,7 @@ import { registerConvertHandlers } from './convert'
 import { registerFileHandlers } from './files'
 import { registerSettingsHandlers } from './settings'
 import { registerTransferHandlers, startTransferServer } from './transfer'
+import { registerAppHandlers } from './app'
 // import { registerTransferHandlers } from './transfer'  ← Stage 3
 // import { registerLibreOfficeHandlers } from './libreoffice'  ← later
 
@@ -10,12 +11,17 @@ import { registerTransferHandlers, startTransferServer } from './transfer'
  * Registers all IPC handlers for the application.
  * Call once from main.ts inside app.whenReady().
  */
+
+
 export function registerAllHandlers() {
   // Load settings from disk and apply to electron application
-  applySystemSettings(loadSettings())
   registerSettingsHandlers()
-  registerConvertHandlers()
-  registerFileHandlers()
-  registerTransferHandlers()
+  applySystemSettings(loadSettings())  
+
+  registerAppHandlers() // General purpose handlers
+  registerConvertHandlers() // Conversion handlers
+  registerFileHandlers() // File dialog handlers
+  registerTransferHandlers() // File transfer handlers
+
   startTransferServer()
 }

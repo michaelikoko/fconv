@@ -24,26 +24,40 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // ...
 })
 
-contextBridge.exposeInMainWorld('openFile', async () => {
-  const result = await ipcRenderer.invoke('dialog:openFile')
+// App
+contextBridge.exposeInMainWorld('openExternal', async (url: string) => {
+  const result = await ipcRenderer.invoke('app:open-external', url)
   return result
 })
 
-contextBridge.exposeInMainWorld('convertFile', async (inputPath: string, outputFormat: string) => {
-  const result = await ipcRenderer.invoke('convert-file', inputPath, outputFormat)
+contextBridge.exposeInMainWorld('checkLibreOfficeAvailability', async () => {
+  const result = await ipcRenderer.invoke('app:get-libreoffice-availability')
+  return result
+})
+
+// Files
+contextBridge.exposeInMainWorld('openFile', async () => {
+  const result = await ipcRenderer.invoke('files:openFile')
   return result
 })
 
 contextBridge.exposeInMainWorld('showFileInFolder', async (filePath: string) => {
-  const result = await ipcRenderer.invoke('show-file-in-folder', filePath)
+  const result = await ipcRenderer.invoke('files:show-file-in-folder', filePath)
+  return result
+})
+
+// Convert
+contextBridge.exposeInMainWorld('convertFile', async (inputPath: string, outputFormat: string) => {
+  const result = await ipcRenderer.invoke('convert:convert-file', inputPath, outputFormat)
   return result
 })
 
 contextBridge.exposeInMainWorld('cancelConversion', async () => {
-  const result = await ipcRenderer.invoke('cancel-conversion')
+  const result = await ipcRenderer.invoke('convert:cancel-conversion')
   return result
 })
 
+// Transfer
 contextBridge.exposeInMainWorld('stageFile', async () => {
   const result = await ipcRenderer.invoke('transfer:stage-file')
   return result
@@ -54,6 +68,7 @@ contextBridge.exposeInMainWorld('unstageFile', async (id: string) => {
   return result
 })
 
+// Settings
 contextBridge.exposeInMainWorld('getSettings', async () => {
   const result = await ipcRenderer.invoke('settings:get')
   return result

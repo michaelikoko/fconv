@@ -10,12 +10,14 @@ async function handleFileOpen() {
       { name: 'Video',         extensions: ['mp4', 'mkv', 'mov', 'avi', 'webm'] },
       { name: 'Audio',         extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'opus', 'm4a'] },
       { name: 'Image',         extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] },
+      { name: 'Document',      extensions: ['doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'csv', 'ppt', 'pptx', 'odp', 'pdf', 'txt'] },
       {
         name: 'All Supported',
         extensions: [
           'mp4', 'mkv', 'mov', 'avi', 'webm',
           'mp3', 'wav', 'ogg', 'flac', 'aac', 'opus', 'm4a',
           'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
+          'doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'csv', 'ppt', 'pptx', 'odp', 'pdf', 'txt'
         ],
       },
     ],
@@ -34,6 +36,6 @@ function handleShowFileInFolder(_event: IpcMainInvokeEvent, filePath: string) {
 
 
 export function registerFileHandlers() {
-  ipcMain.handle('dialog:openFile',      handleFileOpen)
-  ipcMain.handle('show-file-in-folder',  handleShowFileInFolder)
+  ipcMain.handle('files:openFile',      handleFileOpen)
+  ipcMain.handle('files:show-file-in-folder',  handleShowFileInFolder)
 }

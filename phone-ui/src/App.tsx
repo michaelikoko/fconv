@@ -148,9 +148,8 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
           <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14, letterSpacing: '0.1em' }}>
-            FC
+            FCONV
           </span>
-          <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '0.1em' }}>ONV</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{

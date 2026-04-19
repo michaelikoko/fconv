@@ -11,6 +11,7 @@ import {
 } from '../utils/ffmpeg'
 import { getSettings } from './settings'
 import { resolvedOutputDir } from '../utils/settings'
+import { DocumentType, getLibreOfficePath, isDocumentFile, runLibreOffice } from '../utils/libreoffice'
 
 // Tracks the active FFmpeg process so it can be killed on cancel.
 // Module-scoped so both handlers share the same reference.
@@ -19,7 +20,7 @@ let activeFFmpegProcess: ChildProcess | null = null
 function buildFFmpegArgs(
   inputPath: string,
   outputPath: string
-): string [] {
+): string[] {
   const settings = getSettings()
   const args: string[] = ['-i', inputPath]
 
@@ -47,21 +48,18 @@ function buildFFmpegArgs(
  *   'conversion-error'     → { message }
  *   'conversion-cancelled'   (no payload)
  */
-async function handleConvertFile(
-  _event: IpcMainInvokeEvent,
+
+function runFFmpegConversion(
   inputPath: string,
-  outputFormat: string,
-) {
-  const settings = getSettings()
-  const win        = BrowserWindow.getFocusedWindow()!
-  const outputDir = resolvedOutputDir(settings, inputPath) // Get output directory based on settings or default to input file's directory
-  const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
+  outputPath: string,
+  win: BrowserWindow,
+): void {
   const ffmpegPath = getFFmpegPath()
-  const args       = buildFFmpegArgs(inputPath, outputPath)
+  const args = buildFFmpegArgs(inputPath, outputPath)
 
   console.log(`Converting ${inputPath} → ${outputPath}`)
   console.log(`FFmpeg args: ffmpeg ${args.join(' ')}`)
-  
+
   const child = spawn(ffmpegPath, args)
   activeFFmpegProcess = child
 
@@ -102,13 +100,13 @@ async function handleConvertFile(
       if (trimmed.includes('time=') && totalDuration > 0) {
         const current = parseCurrentTime(trimmed)
         if (current !== null) {
-          const percent    = calcPercent(current, totalDuration)
+          const percent = calcPercent(current, totalDuration)
           const speedMatch = trimmed.match(/speed=\s*(\S+)/)
-          const speed      = speedMatch ? speedMatch[1] : '—'
+          const speed = speedMatch ? speedMatch[1] : '—'
 
           // ETA = remaining media seconds / speed ratio
-          const speedNum               = parseFloat(speed.replace(/x$/, '')) || 0
-          const remainingMedia         = totalDuration * (1 - percent / 100)
+          const speedNum = parseFloat(speed.replace(/x$/, '')) || 0
+          const remainingMedia = totalDuration * (1 - percent / 100)
           const estimatedRemainingTime = speedNum > 0 ? remainingMedia / speedNum : 0
 
           win.webContents.send('conversion-progress', { percent, speed, estimatedRemainingTime })
@@ -135,7 +133,52 @@ async function handleConvertFile(
       })
     }
   })
+
 }
+
+async function handleConvertFile(
+  _event: IpcMainInvokeEvent,
+  inputPath: string,
+  outputFormat: DocumentType,
+) {
+  const settings = getSettings()
+  const win = BrowserWindow.getFocusedWindow()!
+  const outputDir = resolvedOutputDir(settings, inputPath) // Get output directory based on settings or default to input file's directory
+  //const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
+  if (isDocumentFile(inputPath)) {
+    // For document files, use LibreOffice for conversion
+    if (!getLibreOfficePath()) {
+      // LibreOffice is not available, send an error back to the renderer
+      win.webContents.send('conversion-error', {
+        message: 'LibreOffice is not installed. Visit libreoffice.org/download to install it.',
+      })
+      return
+    }
+
+    try {
+      const outputPath = await runLibreOffice(inputPath, outputFormat, outputDir, win)
+      win.webContents.send('conversion-done', { outputPath })
+    } catch (error) {
+      win.webContents.send('conversion-error', {
+        message: (error as Error).message,
+      })
+    }
+    return
+  } else {
+    // For Media files, use FFmpeg for conversion
+    const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
+
+    win.webContents.send('conversion-log', {
+      time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+      message: `INPUT: ${inputPath}`,
+      level: 'info',
+    })
+
+    runFFmpegConversion(inputPath, outputPath, win)
+  }
+}
+
+
 
 async function handleCancelConversion() {
   if (!activeFFmpegProcess) return { cancelled: false }
@@ -160,8 +203,7 @@ async function handleCancelConversion() {
   return { cancelled: false }
 }
 
-
 export function registerConvertHandlers() {
-  ipcMain.handle('convert-file',      handleConvertFile)
-  ipcMain.handle('cancel-conversion', handleCancelConversion)
+  ipcMain.handle('convert:convert-file', handleConvertFile)
+  ipcMain.handle('convert:cancel-conversion', handleCancelConversion)
 }
