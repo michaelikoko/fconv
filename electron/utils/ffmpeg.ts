@@ -1,10 +1,10 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { app } from 'electron'
+import crypto from 'crypto'
 
-
-export function resolveOutputPath(inputPath: string, outputFormat: string): string {
-  const dir  = path.dirname(inputPath)
+export function resolveOutputPath(inputPath: string, outputFormat: string, directory: string | null = null): string {
+  const dir  = directory || path.dirname(inputPath) // Use same directory as input by default if no directory is provided
   const stem = path.basename(inputPath, path.extname(inputPath))
   const ext  = outputFormat.startsWith('.') ? outputFormat : `.${outputFormat}`
 
@@ -120,4 +120,13 @@ export function getFFmpegPath(): string {
   }
   // Fall back to system FFmpeg during development
   return 'ffmpeg'
+}
+
+export function isValidUUID(id: string | undefined): id is crypto.UUID {
+  // Type guard to validate if a string is a valid UUID (version 4)
+  if (!id) return false;
+  
+  // Regex for standard UUID format (8-4-4-4-12 hex)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 }

@@ -7,6 +7,9 @@ import TransferPage from './pages/TransferPage'
 import FilesPage from './pages/FilesPage'
 import SettingsPage from './pages/SettingsPage'
 import { useConversionEvents } from './hooks/useConversionEvents'
+import { useTransferEvents } from './hooks/useTransferEvents'
+import { useSettingsLoader } from './hooks/useSettingsLoader'
+import { useAppLoader } from './hooks/useAppLoader'
 
 const ROUTE_TO_NAV: Record<string, string> = {
   '/': 'convert',
@@ -23,7 +26,11 @@ const NAV_TO_ROUTE: Record<string, string> = {
 }
 
 export default function App() {
+  useAppLoader()
   useConversionEvents()
+  useTransferEvents()
+  useSettingsLoader()
+  
   const navigate = useNavigate()
   const location = useLocation()
   const activeNav = ROUTE_TO_NAV[location.pathname] ?? 'convert'

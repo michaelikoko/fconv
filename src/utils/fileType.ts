@@ -1,11 +1,13 @@
-import type { FilePath, FileType } from "../store/conversionStore" 
+import { File, FileAudio, FileImage, FileVideo } from "lucide-react"
+import { AUDIO_EXTS, DOCUMENT_EXTS, FORMAT_GROUPS, FormatGroup, IMAGE_EXTS, VIDEO_EXTS, type FilePath, type FileType } from "../store/conversionStore" 
 
 export function detectFileType(filePath: FilePath): FileType {
   if (!filePath) return null
-  const ext = filePath.path.split('.').pop()?.toLowerCase()
-  if (['mp4','mkv','mov','avi','webm'].includes(ext ?? '')) return 'video'
-  if (['mp3','wav','ogg','flac','aac','opus','m4a'].includes(ext ?? '')) return 'audio'
-  if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext ?? '')) return 'image'
+  const ext = filePath.path.split('.').pop()?.toLowerCase() ?? ''
+  if (VIDEO_EXTS.includes(ext))    return 'video'
+  if (AUDIO_EXTS.includes(ext))    return 'audio'
+  if (IMAGE_EXTS.includes(ext))    return 'image'
+  if (DOCUMENT_EXTS.includes(ext)) return 'document'
   return null
 }
 
@@ -37,4 +39,44 @@ export function formatTime(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+export function getFileIcon(name: string) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (['mp4','mkv','mov','avi','webm','gif'].includes(ext)) return FileVideo
+  if (['mp3','wav','ogg','flac','aac','opus','m4a'].includes(ext)) return FileAudio
+  if (['jpg','jpeg','png','webp','bmp'].includes(ext)) return FileImage
+  return File
+}
+
+
+/**
+ * Returns format groups relevant to the given file type and input extension.
+ * For documents, returns only the relevant sub-group (Writer/Calc/Impress).
+ */
+export function getFormatGroups(fileType: FileType, inputPath?: string): FormatGroup[] {
+  if (!fileType) return FORMAT_GROUPS // show all when no file selected
+
+  if (fileType === 'document' && inputPath) {
+    const ext = inputPath.split('.').pop()?.toLowerCase() ?? ''
+
+    const calcExts    = ['xls', 'xlsx', 'ods', 'csv']
+    const impressExts = ['ppt', 'pptx', 'odp']
+
+    if (calcExts.includes(ext)) {
+      return FORMAT_GROUPS.filter(g => g.label === 'FORMAT // SPREADSHEET')
+    }
+    if (impressExts.includes(ext)) {
+      return FORMAT_GROUPS.filter(g => g.label === 'FORMAT // PRESENTATION')
+    }
+    // Writer + PDF → document formats
+    return FORMAT_GROUPS.filter(g => g.label === 'FORMAT // DOCUMENT')
+  }
+
+  // Video shows video + audio (extract audio from video)
+  if (fileType === 'video') {
+    return FORMAT_GROUPS.filter(g => g.type === 'video')
+  }
+
+  return FORMAT_GROUPS.filter(g => g.type === fileType)
 }
