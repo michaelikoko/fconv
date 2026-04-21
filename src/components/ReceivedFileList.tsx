@@ -1,4 +1,4 @@
-import { FolderOpen, RefreshCw } from 'lucide-react'
+import { FolderOpen, RefreshCw, Upload } from 'lucide-react'
 import { useTransferStore, ReceivedFile } from '../store/transferStore'
 import { FilePath, useConversionStore } from '../store/conversionStore'
 import { detectFileType, formatFileSize, getFileIcon } from '../utils/fileType'
@@ -6,29 +6,51 @@ import { useNavigate } from 'react-router'
 
 function timeAgo(date: Date): string {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
-  if (secs < 60) return `${secs}S AGO`
+  if (secs < 60)   return `${secs}S AGO`
   if (secs < 3600) return `${Math.floor(secs / 60)}M AGO`
   return `${Math.floor(secs / 3600)}H AGO`
 }
 
+
+function UploadingRow({ name, progress }: { name: string; progress: number }) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-3 border-b border-base-300 bg-primary/3">
+      <div className="w-7 h-7 bg-base-300 border border-primary/30 flex items-center justify-center shrink-0">
+        <Upload size={13} className="text-primary animate-pulse" strokeWidth={1.5} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-base-content font-mono text-xs tracking-wider truncate">{name}</p>
+        <div className="mt-1.5 h-0.5 bg-base-300 overflow-hidden">
+          <div
+            className="h-full bg-primary transition-all duration-200"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-primary font-mono text-[9px] tracking-wider mt-0.5">
+          RECIEVING... {progress}%
+        </p>
+      </div>
+    </div>
+  )
+}
+
+
+
 interface ReceivedFileRowProps {
-  file: ReceivedFile
+  file:     ReceivedFile
   compact?: boolean
 }
 
 function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
-  const Icon = getFileIcon(file.name)
+  const Icon     = getFileIcon(file.name)
   const navigate = useNavigate()
   const { setFilePath } = useConversionStore()
 
   const handleShowInFolder = async () => {
-    // Show the received file in the system file explorer
-    //await window.ipcRenderer.invoke('show-file-in-folder', file.savedPath)
-    await window.showFileInFolder(file.savedPath)
+    await window.ipcRenderer.invoke('files:show-file-in-folder', file.savedPath)
   }
 
   const handleConvert = () => {
-    // Prepare file info for conversion page and navigate there
     const fileObj: FilePath = { path: file.savedPath, size: file.size }
     setFilePath(fileObj, detectFileType(fileObj))
     navigate('/')
@@ -84,18 +106,25 @@ function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
   )
 }
 
+
 interface ReceivedFileListProps {
-  compact?: boolean
-  maxItems?: number   // limits display — used for the right panel ticker
+  compact?:  boolean
+  maxItems?: number   // limits displayed rows — used for the right panel ticker
 }
 
 export default function ReceivedFileList({ compact, maxItems }: ReceivedFileListProps) {
-  //const allFiles     = useTransferStore((s) => s.receivedFiles)
-  const { receivedFiles } = useTransferStore()
-  const allFiles = Array.from(receivedFiles.values())
-  const receivedFilesArray = maxItems ? allFiles.slice(0, maxItems) : allFiles
-  //console.log(receivedFilesArray)
-  if (receivedFilesArray.length === 0) {
+  const { receivedFiles, uploadingFiles } = useTransferStore()
+
+  // Sort newest-first by receivedAt
+  const sorted = Array.from(receivedFiles.values()).sort(
+    (a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
+  )
+
+  const displayed  = maxItems ? sorted.slice(0, maxItems) : sorted
+  const uploading  = Array.from(uploadingFiles.values())
+  const isEmpty    = displayed.length === 0 && uploading.length === 0
+
+  if (isEmpty) {
     return (
       <div className={`flex flex-col items-center justify-center gap-2
                        ${compact ? 'py-4' : 'flex-1 py-8'}`}>
@@ -113,8 +142,13 @@ export default function ReceivedFileList({ compact, maxItems }: ReceivedFileList
 
   return (
     <div className={compact ? '' : 'flex-1 overflow-y-auto'}>
-      {receivedFilesArray.map((file, i) => (
-        <ReceivedFileRow key={`${file.id}-${i}`} file={file} compact={compact} />
+      {/* Active uploads pinned to the top — no maxItems limit */}
+      {uploading.map(u => (
+        <UploadingRow key={u.id} name={u.fileName} progress={u.progress} />
+      ))}
+      {/* Completed files sorted newest-first */}
+      {displayed.map(file => (
+        <ReceivedFileRow key={file.id} file={file} compact={compact} />
       ))}
     </div>
   )

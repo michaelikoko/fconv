@@ -12,7 +12,9 @@ export function useTransferEvents() {
         addStagedFile,
         removeStagedFile,
         addReceivedFile,
-        addSentFile
+        addSentFile,
+        setUploadProgress,
+        removeUploading
     } = useTransferStore()
 
     useEffect(() => {
@@ -63,12 +65,29 @@ export function useTransferEvents() {
             })
         }
 
+        // Phone started uploading a file — show progress indicator
+        const onUploadProgress = (
+            _e: IpcRendererEvent,
+            data: { id: crypto.UUID; name: string; progress: number },
+        ) => {
+            setUploadProgress(data.id, data.name, data.progress)
+        }
+
+
+        // Phone upload finished — remove indicator, file will appear via files-received
+        const onUploadComplete = (_e: IpcRendererEvent, data: { id: crypto.UUID }) => {
+            removeUploading(data.id)
+        }
+
+
         window.ipcRenderer.on('transfer:server-ready', onServerReady)
         window.ipcRenderer.on('transfer:client-connected', onClientConnected)
         window.ipcRenderer.on('transfer:files-staged', onFilesStaged)
         window.ipcRenderer.on('transfer:files-unstaged', onFileUnstaged)
         window.ipcRenderer.on('transfer:files-received', onFilesReceived)
-        window.ipcRenderer.on('transfer:file-downloaded',  onFileDownloaded)
+        window.ipcRenderer.on('transfer:file-downloaded', onFileDownloaded)
+        window.ipcRenderer.on('transfer:upload-progress', onUploadProgress)
+        window.ipcRenderer.on('transfer:upload-complete', onUploadComplete)
 
         return () => {
             window.ipcRenderer.off('transfer:server-ready', onServerReady)
@@ -77,6 +96,8 @@ export function useTransferEvents() {
             window.ipcRenderer.off('transfer:files-unstaged', onFileUnstaged)
             window.ipcRenderer.off('transfer:files-received', onFilesReceived)
             window.ipcRenderer.off('transfer:file-downloaded', onFileDownloaded)
+            window.ipcRenderer.off('transfer:upload-progress', onUploadProgress)
+            window.ipcRenderer.off('transfer:upload-complete', onUploadComplete)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])

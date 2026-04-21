@@ -1,14 +1,16 @@
-import express, { type Response } from 'express'
+import express, { Request, type Response } from 'express'
 import { Server } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import path from 'node:path'
-import os from 'node:os'
+//import os from 'node:os'
 import fs from 'node:fs'
 import multer from 'multer'
 import { BrowserWindow, dialog, app as electronApp, ipcMain, IpcMainInvokeEvent } from 'electron'
 import crypto from 'crypto'
 import { resolveOutputPath } from '../utils/ffmpeg'
-import { isValidUUID } from '../utils/ffmpeg' 
+import { isValidUUID } from '../utils/ffmpeg'
+import { getSettings } from './settings'
+import { resolvedReceivedDir } from '../utils/settings'
 
 export interface StagedFile {
     // Represents a file staged to be transferred to the phone, with a unique ID and its original path on the desktop
@@ -89,13 +91,13 @@ const sseClients = new Set<Response>()
 // 5. 'transfer:server-ready' when the transfer server starts and is ready to accept connections. Sent directly in main.ts after server is ready, not emitted through broadcastEvent
 // 6. 'transfer:file-downloaded' when a staged file is successfully downloaded by the phone and can be removed from the staged files registry
 // 7. 'transfer:upload-progress' when the phone sends percentage progress updates for an ongoing file upload, allowing the desktop app to update progress bars in the UI in real time
-
-export function broadcastEvent(event: 'files-staged' | 'files-received' | 'files-unstaged' | 'client-connected' | 'file-downloaded' | 'upload-progress', data: { files: StagedFile[] | ReceivedFile[] } | { id: crypto.UUID } | { count: number } | { file: SentFile } | { fileName: string, progress: number }) {
+// 8. 'transfer:upload-complete' when a file upload from the phone completes, allowing the desktop app to remove any temporary progress indicators for that upload
+export function broadcastEvent(event: 'files-staged' | 'files-received' | 'files-unstaged' | 'client-connected' | 'file-downloaded' | 'upload-progress' | 'upload-complete', data: { files: StagedFile[] | ReceivedFile[] } | { id: crypto.UUID } | { count: number } | { file: SentFile } | { id: crypto.UUID, fileName: string, progress: number } | { id: crypto.UUID }) {
     const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
     sseClients.forEach(client => client.write(payload))
     // Emits to renderer channels on all windows
     BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send(`transfer:${event}`, data)
+        win.webContents.send(`transfer:${event}`, data)
     })
 }
 
@@ -109,8 +111,32 @@ export function getLocalIP(): string {
     return '127.0.0.1'
 }
 
+function trackUploadProgress(
+    req: Request,
+    uploadId: crypto.UUID,
+    fileName: string,
+): void {
+    const totalBytes = parseInt(req.headers['content-length'] ?? '0', 10)
+    if (!totalBytes) return // can't track without a content-length
+
+    let receivedBytes = 0
+
+    // Broadcast start so desktop shows the indicator immediately
+    broadcastEvent('upload-progress', { id: uploadId, fileName, progress: 0 })
+
+    req.on('data', (chunk: Buffer) => {
+        receivedBytes += chunk.length
+        const progress = Math.min(Math.round((receivedBytes / totalBytes) * 100), 99)
+        // Throttle — only send every ~5% to avoid flooding the IPC channel
+        if (progress % 5 === 0) {
+            broadcastEvent('upload-progress', { id: uploadId, fileName, progress })
+        }
+    })
+}
+
 let server: Server | null = null
-const RECEIVED_DIRECTORY = path.join(os.homedir(), 'Downloads', 'FCONV', 'received')
+//const RECEIVED_DIRECTORY = path.join(os.homedir(), 'Downloads', 'FCONV', 'received')
+const RECEIVED_DIRECTORY = resolvedReceivedDir(getSettings()) 
 
 fs.mkdirSync(RECEIVED_DIRECTORY, { recursive: true })
 
@@ -138,21 +164,42 @@ export function startTransferServer() {
 
     app.get('/ping', (_req, res) => res.json({ ok: true }))
 
-    app.post('/api/upload', upload.array('files'), (req, res) => {
+    app.post('/api/upload', (req, res) => {
         // Receive files from the phone and save them to the received directory
-        const files: ReceivedFile[] = (req.files as Express.Multer.File[]).map(f => ({
-            id: crypto.randomUUID(),
-            name: f.originalname,
-            size: f.size,
-            savedPath: f.path,
-            receivedAt: new Date(),
-        }))
+        const uploadId = crypto.randomUUID()
+        const fileName = req.headers['x-file-name'] as string || 'unknown'
 
-        console.log(`Received ${files.length} file(s) from phone:`, files.map(f => f.name))
-        // Notify all connected clients that new files arrived
-        broadcastEvent('files-received', { files }) // Event is transfer:files-received for win.webContents.send in index.ts
+        // Start tracking upload progress before multer consumes the stream
+        trackUploadProgress(req, uploadId, decodeURIComponent(fileName))
 
-        res.json({ ok: true, received: files })
+
+        // Hand off to multer once progress listener is attached
+        upload.array('files')(req, res, (err) => {
+            if (err) {
+                // Notify desktop the upload failed so the indicator is removed
+                broadcastEvent('upload-complete', { id: uploadId })
+                res.status(500).json({ error: err.message })
+                return
+            }
+
+            const files: ReceivedFile[] = (req.files as Express.Multer.File[]).map(f => ({
+                id: crypto.randomUUID(),
+                name: f.originalname,
+                size: f.size,
+                savedPath: f.path,
+                receivedAt: new Date(),
+            }))
+
+            console.log(`Received ${files.length} file(s) from phone:`, files.map(f => f.name))
+
+            // Remove the uploading indicator before showing the completed file
+            broadcastEvent('upload-complete', { id: uploadId })
+
+            // Notify desktop that new files are available
+            broadcastEvent('files-received', { files })
+
+            res.json({ ok: true, received: files.map(({ name, size }) => ({ name, size })) })
+        })
     })
 
     app.get('/api/files', (_req, res) => {
@@ -166,8 +213,8 @@ export function startTransferServer() {
         // Use type guard to validate string id
         if (!isValidUUID(fileId)) {
             console.log(fileId)
-            res.status(400).json({ error: 'Invalid or missing File ID'})
-            return 
+            res.status(400).json({ error: 'Invalid or missing File ID' })
+            return
         }
 
         const file = stagedFiles.get(fileId)
@@ -184,7 +231,7 @@ export function startTransferServer() {
             if (error) {
                 // Download failed, leave in stage are for retr
                 console.log(`Download error for file ${file.name}:`, error.message)
-                return 
+                return
             }
 
             stagedFiles.delete(file.id) // Remove from staged files after successful download

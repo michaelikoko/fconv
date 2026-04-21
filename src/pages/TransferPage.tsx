@@ -20,10 +20,8 @@ export default function TransferPage() {
   return (
     <div className="flex flex-1 overflow-hidden">
 
-      {/* ── LEFT — Laptop side ─────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 overflow-hidden border-r border-base-300">
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-base-300 shrink-0">
           <div className="flex items-center gap-2">
             <ArrowLeftRight size={13} className="text-primary" strokeWidth={2} />
@@ -124,7 +122,13 @@ export default function TransferPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <ReceivedFileList compact maxItems={3} />
+          <div>Put Something Here later</div>
+          {
+            /**
+             * 
+            <ReceivedFileList compact maxItems={3} />
+             */
+          }
         </div>
 
       </div>

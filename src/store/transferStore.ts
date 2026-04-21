@@ -23,6 +23,12 @@ export interface SentFile {
   downloadedAt: Date
 }
 
+export interface UploadingFile {
+  id: crypto.UUID // Temporary ID for tracking upload progress
+  fileName: string
+  progress: number
+}
+
 interface TransferStore {
   // Connection
   localIP: string
@@ -31,12 +37,13 @@ interface TransferStore {
   connectedClients: number
 
   // Files - I used Map to prevent duplication in the event of renderer channels being triggered multiple times. The downside is that if a file is sent or received twice only one instance is recorded 
-  stagedFiles: Map<crypto.UUID, StagedFile> 
+  stagedFiles: Map<crypto.UUID, StagedFile>
   //  stagedFiles: StagedFile[]
   receivedFiles: Map<crypto.UUID, ReceivedFile>
-//  receivedFiles: ReceivedFile[]
+  //  receivedFiles: ReceivedFile[]
   sentFiles: Map<crypto.UUID, SentFile>
   //  sentFiles: SentFile[]
+  uploadingFiles: Map<crypto.UUID, UploadingFile>
 
   // Actions
   setLocalIP: (ip: string) => void
@@ -48,6 +55,8 @@ interface TransferStore {
   addReceivedFile: (file: ReceivedFile) => void
   clearReceivedFiles: () => void
   addSentFile: (file: SentFile) => void
+  setUploadProgress: (id: crypto.UUID, fileName: string, progress: number) => void
+  removeUploading: (id: crypto.UUID) => void
 }
 
 export const useTransferStore = create<TransferStore>((set) => ({
@@ -58,6 +67,7 @@ export const useTransferStore = create<TransferStore>((set) => ({
   stagedFiles: new Map<crypto.UUID, StagedFile>(),
   receivedFiles: new Map<crypto.UUID, ReceivedFile>(),
   sentFiles: new Map<crypto.UUID, SentFile>(),
+  uploadingFiles: new Map<crypto.UUID, UploadingFile>(),
   port: 3333, // Default port for now, probably change to read from .env
 
   setLocalIP: (ip) => set({ localIP: ip }),
@@ -80,19 +90,33 @@ export const useTransferStore = create<TransferStore>((set) => ({
       return { stagedFiles: updated }
     }),
 
-//  addReceivedFile: (file) =>
-//    set((state) => ({ receivedFiles: [file, ...state.receivedFiles] })),
+  //  addReceivedFile: (file) =>
+  //    set((state) => ({ receivedFiles: [file, ...state.receivedFiles] })),
 
   addReceivedFile: (file) =>
     set((state) => ({ receivedFiles: new Map(state.receivedFiles).set(file.id, file) })),
 
 
-//  clearReceivedFiles: () => set({ receivedFiles: [] }),
+  //  clearReceivedFiles: () => set({ receivedFiles: [] }),
 
-clearReceivedFiles: () => set({ receivedFiles: new Map<crypto.UUID, ReceivedFile>() }),
+  clearReceivedFiles: () => set({ receivedFiles: new Map<crypto.UUID, ReceivedFile>() }),
 
   // addSentFile: (file) =>
   //   set((state) => ({ sentFiles: [...state.sentFiles, file] })),
   addSentFile: (file) =>
     set((state) => ({ sentFiles: new Map(state.sentFiles).set(file.id, file) })),
+
+  setUploadProgress: (id, fileName, progress) =>
+    set((state) => {
+      const uploadingFiles = new Map(state.uploadingFiles)
+      uploadingFiles.set(id, { id, fileName, progress })
+      return { uploadingFiles }
+    }),
+
+  removeUploading: (id) =>
+    set((state) => {
+      const uploadingFiles = new Map(state.uploadingFiles)
+      uploadingFiles.delete(id)
+      return { uploadingFiles }
+    }),
 }))

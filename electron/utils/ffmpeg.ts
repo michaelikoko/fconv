@@ -4,6 +4,7 @@ import { app } from 'electron'
 import crypto from 'crypto'
 
 export function resolveOutputPath(inputPath: string, outputFormat: string, directory: string | null = null): string {
+  // Generate an output file path based on the input file, desired output format, and optional output directory
   const dir  = directory || path.dirname(inputPath) // Use same directory as input by default if no directory is provided
   const stem = path.basename(inputPath, path.extname(inputPath))
   const ext  = outputFormat.startsWith('.') ? outputFormat : `.${outputFormat}`

@@ -43,10 +43,12 @@ export function resolvedTempPath(settings: AppSettings): string {
 }
 
 export function resolvedOutputDir(settings: AppSettings, inputFilePath: string): string {
+  // Resolve output directory for converted files
   return settings.defaultOutputDir.trim() || path.dirname(inputFilePath)
 }
 
 export function resolvedReceivedDir(settings: AppSettings): string {
+  // Resolve directory for files received from the phone
   return settings.receivedFilesDir.trim()
     || path.join(os.homedir(), 'Downloads', 'FCONV', 'received')
 }

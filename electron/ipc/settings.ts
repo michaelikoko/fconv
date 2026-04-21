@@ -17,7 +17,7 @@ let currentSettings: AppSettings = loadSettings()
  */
 export function getSettings(): AppSettings {
   return currentSettings
-} // The functioon looks useless, so might remove it later
+} // The functioon looks useless, so might remove it later, not so useless used in transfer.ts
 
 
 function handleGetSettings(): AppSettings {
