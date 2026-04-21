@@ -30,12 +30,13 @@ interface Window {
   checkLibreOfficeAvailability: () => Promise<{ libreOfficeAvailable: boolean, libreOfficePath: string | null }>
 
   // Files
-  openFile: () => Promise<{ path: string; size: number } | undefined>
+  openFile: () => Promise<{ path: string; size: number }[] | null>
   showFileInFolder: (filePath: string) => Promise<void>
   
   // Convert
-  convertFile: (inputPath: string, outputFormat: string) => Promise<void>
-  cancelConversion: () => Promise<{ cancelled: boolean }>
+  convertBatch: (items: import('./ipc/convert').BatchConvertItem[]) => Promise<void>
+  cancelItem: (id: string) => Promise<void>
+  cancelAll: () => Promise<{ cancelled: boolean }>
 
   // Transfer
   stageFile: () => Promise<import('./ipc/transfer').StagedFile[] | null>

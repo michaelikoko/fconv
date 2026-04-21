@@ -1,5 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type { AppSettings } from './utils/settings'
+import { BatchConvertItem } from './ipc/convert'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -47,13 +48,18 @@ contextBridge.exposeInMainWorld('showFileInFolder', async (filePath: string) => 
 })
 
 // Convert
-contextBridge.exposeInMainWorld('convertFile', async (inputPath: string, outputFormat: string) => {
-  const result = await ipcRenderer.invoke('convert:convert-file', inputPath, outputFormat)
+contextBridge.exposeInMainWorld('convertBatch', async (items: BatchConvertItem[]) => {
+  const result = await ipcRenderer.invoke('convert:convert-batch', items)
   return result
 })
 
-contextBridge.exposeInMainWorld('cancelConversion', async () => {
-  const result = await ipcRenderer.invoke('convert:cancel-conversion')
+contextBridge.exposeInMainWorld('cancelItem', async (id: string) => {
+  const result = await ipcRenderer.invoke('convert:cancel-item', id)
+  return result
+})
+
+contextBridge.exposeInMainWorld('cancelAll', async () => {
+  const result = await ipcRenderer.invoke('convert:cancel-all')
   return result
 })
 

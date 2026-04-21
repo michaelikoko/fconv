@@ -39,9 +39,11 @@ export interface SentFile {
 
 // Can't use Promise.withResolver because of TypeScript version(requires 5.7), later change the version and refactor the syntax
 //let serverReady: Promise<{ ip: string, port: number }>
+// Create a promise and capture its resolver function to be called when the server is ready. When resolved, it returns the IP and port
 let outerResolveServerReady: (value: { ip: string, port: number }) => void
 
-export const serverReady = new Promise((resolve) => {
+// 
+export const serverReady = new Promise<{ ip: string, port: number }>((resolve) => {
     outerResolveServerReady = resolve
 })
 

@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent } from 'electron'
 import { spawn, ChildProcess } from 'node:child_process'
-import { getFFmpegPath } from '../utils/ffmpeg'
+import { getFFmpegPath, MediaType } from '../utils/ffmpeg'
 import {
   resolveOutputPath,
   parseDuration,
@@ -11,11 +11,16 @@ import {
 } from '../utils/ffmpeg'
 import { getSettings } from './settings'
 import { resolvedOutputDir } from '../utils/settings'
-import { DocumentType, getLibreOfficePath, isDocumentFile, runLibreOffice } from '../utils/libreoffice'
+import { DocumentType, getLibreOfficePath, isDocumentFile, isValidDocumentType, runLibreOffice } from '../utils/libreoffice'
 
 // Tracks the active FFmpeg process so it can be killed on cancel.
 // Module-scoped so both handlers share the same reference.
-let activeFFmpegProcess: ChildProcess | null = null
+//let activeFFmpegProcess: ChildProcess | null = null
+const activeFFmpegProcess = new Map<string, ChildProcess>
+
+// LibreOffice is single-instance — run its jobs sequentially via a promise chain.
+// FFmpeg jobs run in parallel since each is an independent child process.
+let loQueue: Promise<void> = Promise.resolve()
 
 function buildFFmpegArgs(
   inputPath: string,
@@ -42,14 +47,15 @@ function buildFFmpegArgs(
  * Spawns an FFmpeg process to convert inputPath to outputFormat.
  *
  * Emits to renderer via webContents.send:
- *   'conversion-progress'  → { percent, speed, estimatedRemainingTime }
+ *   'conversion-progress'  → { id, percent, speed, estimatedRemainingTime }
  *   'conversion-log'       → { time, message, level }
- *   'conversion-done'      → { outputPath }
- *   'conversion-error'     → { message }
+ *   'conversion-done'      → { id, outputPath }
+ *   'conversion-error'     → { id, message }
  *   'conversion-cancelled'   (no payload)
  */
 
 function runFFmpegConversion(
+  id: string, // Track the current file being converted
   inputPath: string,
   outputPath: string,
   win: BrowserWindow,
@@ -57,11 +63,11 @@ function runFFmpegConversion(
   const ffmpegPath = getFFmpegPath()
   const args = buildFFmpegArgs(inputPath, outputPath)
 
-  console.log(`Converting ${inputPath} → ${outputPath}`)
+  console.log(`Converting ${id.slice(0, 8)} FFmpeg ${inputPath} → ${outputPath}`)
   console.log(`FFmpeg args: ffmpeg ${args.join(' ')}`)
 
   const child = spawn(ffmpegPath, args)
-  activeFFmpegProcess = child
+  activeFFmpegProcess.set(id, child) // Store the child process with the file ID as key
 
   let stderrBuffer = ''
   let totalDuration = 0
@@ -82,7 +88,7 @@ function runFFmpegConversion(
         const { message, level } = formatLogMessage(trimmed)
         win.webContents.send('conversion-log', {
           time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-          message,
+          message: `[${inputPath.split('/').pop()}] ${message}`,
           level,
         })
       }
@@ -109,26 +115,26 @@ function runFFmpegConversion(
           const remainingMedia = totalDuration * (1 - percent / 100)
           const estimatedRemainingTime = speedNum > 0 ? remainingMedia / speedNum : 0
 
-          win.webContents.send('conversion-progress', { percent, speed, estimatedRemainingTime })
+          win.webContents.send('conversion-progress', { id, percent, speed, estimatedRemainingTime })
         }
       }
     }
   })
 
   child.on('close', (code, signal) => {
-    activeFFmpegProcess = null
+    activeFFmpegProcess.delete(id)
 
     // SIGKILL means the user confirmed cancellation via handleCancelConversion
     if (signal === 'SIGKILL') {
       console.log('Conversion cancelled by user.')
-      win.webContents.send('conversion-cancelled')
+      win.webContents.send('conversion-cancelled', { id })
       return
     }
 
     if (code === 0) {
-      win.webContents.send('conversion-done', { outputPath })
+      win.webContents.send('conversion-done', { id, outputPath })
     } else {
-      win.webContents.send('conversion-error', {
+      win.webContents.send('conversion-error', { id, 
         message: `FFmpeg exited with code ${code}`,
       })
     }
@@ -136,74 +142,116 @@ function runFFmpegConversion(
 
 }
 
-async function handleConvertFile(
+export interface BatchConvertItem {
+  id:           string
+  inputPath:    string
+  outputFormat: MediaType | DocumentType 
+}
+
+/**
+ * Converts a batch of files.
+ * FFmpeg items run in parallel (independent child processes).
+ * LibreOffice items are queued sequentially to avoid lock file conflicts.
+ */
+async function handleConvertBatch(
   _event: IpcMainInvokeEvent,
-  inputPath: string,
-  outputFormat: DocumentType,
+  items: BatchConvertItem[],
 ) {
+  const win      = BrowserWindow.getFocusedWindow()!
   const settings = getSettings()
-  const win = BrowserWindow.getFocusedWindow()!
-  const outputDir = resolvedOutputDir(settings, inputPath) // Get output directory based on settings or default to input file's directory
-  //const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
-  if (isDocumentFile(inputPath)) {
-    // For document files, use LibreOffice for conversion
-    if (!getLibreOfficePath()) {
-      // LibreOffice is not available, send an error back to the renderer
-      win.webContents.send('conversion-error', {
-        message: 'LibreOffice is not installed. Visit libreoffice.org/download to install it.',
+
+  for (const item of items) {
+    const { id, inputPath, outputFormat } = item
+    const outputDir = resolvedOutputDir(settings, inputPath)
+
+    if (isDocumentFile(inputPath)) {
+      // ── LibreOffice — chain onto sequential queue
+      if (!getLibreOfficePath()) {
+        win.webContents.send('conversion-error', {
+          id,
+          message: 'LibreOffice is not installed. Visit libreoffice.org/download to install it.',
+        })
+        continue
+      }
+
+      loQueue = loQueue.then(async () => {
+        try {
+          if (!isValidDocumentType(outputFormat)) {
+            throw new Error(`Unsupported output format: ${outputFormat}`)
+          }
+          const outputPath = await runLibreOffice(inputPath, outputFormat, outputDir, win)
+          win.webContents.send('conversion-done', { id, outputPath })
+        } catch (err) {
+          win.webContents.send('conversion-error', { id, message: (err as Error).message })
+        }
       })
-      return
-    }
 
-    try {
-      const outputPath = await runLibreOffice(inputPath, outputFormat, outputDir, win)
-      win.webContents.send('conversion-done', { outputPath })
-    } catch (error) {
-      win.webContents.send('conversion-error', {
-        message: (error as Error).message,
+    } else {
+      // ── FFmpeg — run immediately in parallel
+      const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
+
+      win.webContents.send('conversion-log', {
+        time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+        message: `QUEUED: ${inputPath.split('/').pop()} → ${outputFormat.toUpperCase()}`,
+        level: 'info',
       })
+
+      runFFmpegConversion(id, inputPath, outputPath, win)
     }
-    return
-  } else {
-    // For Media files, use FFmpeg for conversion
-    const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
-
-    win.webContents.send('conversion-log', {
-      time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-      message: `INPUT: ${inputPath}`,
-      level: 'info',
-    })
-
-    runFFmpegConversion(inputPath, outputPath, win)
   }
 }
 
-
-
-async function handleCancelConversion() {
-  if (!activeFFmpegProcess) return { cancelled: false }
+async function handleCancelItem(_event: IpcMainInvokeEvent, id: string) {
+  const child = activeFFmpegProcess.get(id)
+  if (!child) return { cancelled: false }
 
   const win = BrowserWindow.getFocusedWindow()!
   const { response } = await dialog.showMessageBox(win, {
-    type: 'warning',
-    title: 'Cancel Conversion',
-    message: 'Are you sure you want to cancel?',
-    detail: 'The output file will be incomplete.',
-    buttons: ['Yes, Cancel', 'Keep Going'],
-    defaultId: 1, // default to "Keep Going" — safer against accidental clicks
-    cancelId: 1,
+    type:      'warning',
+    title:     'Cancel Conversion',
+    message:   'Cancel this file?',
+    detail:    'The output file will be incomplete.',
+    buttons:   ['Yes, Cancel', 'Keep Going'],
+    defaultId: 1,
+    cancelId:  1,
   })
 
-  // response 0 = "Yes, Cancel", response 1 = "Keep Going"
   if (response === 0) {
-    activeFFmpegProcess.kill('SIGKILL')
+    child.kill('SIGKILL')
     return { cancelled: true }
   }
 
   return { cancelled: false }
 }
 
-export function registerConvertHandlers() {
-  ipcMain.handle('convert:convert-file', handleConvertFile)
-  ipcMain.handle('convert:cancel-conversion', handleCancelConversion)
+/**
+ * Cancels all active processes with a confirmation dialog.
+ */
+async function handleCancelAll() {
+  if (activeFFmpegProcess.size === 0) return { cancelled: false }
+
+  const win = BrowserWindow.getFocusedWindow()!
+  const { response } = await dialog.showMessageBox(win, {
+    type:      'warning',
+    title:     'Cancel All Conversions',
+    message:   `Cancel all ${activeFFmpegProcess.size} running conversion(s)?`,
+    detail:    'All output files will be incomplete.',
+    buttons:   ['Yes, Cancel All', 'Keep Going'],
+    defaultId: 1,
+    cancelId:  1,
+  })
+
+  if (response === 0) {
+    activeFFmpegProcess.forEach(child => child.kill('SIGKILL'))
+    return { cancelled: true }
+  }
+
+  return { cancelled: false }
+}
+
+
+export function registerConvertHandlers(): void {
+  ipcMain.handle('convert:convert-batch', handleConvertBatch)
+  ipcMain.handle('convert:cancel-item',   handleCancelItem)
+  ipcMain.handle('convert:cancel-all',    handleCancelAll)
 }

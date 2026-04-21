@@ -130,3 +130,7 @@ export function isValidUUID(id: string | undefined): id is crypto.UUID {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 }
+
+//export type MediaType = 'mp4' | 'mkv' | 'mov' | 'avi' | 'webm' | 'gif' | 'm4v' | 'flv' | 'mp3' | 'wav' | 'ogg' | 'flac' | 'aac' | 'opus' | 'm4a' | 'wma' | 'jpg' | 'jpeg' | 'png' | 'webp' | 'bmp' | 'tiff' | 'svg'
+export const MEDIA_EXTENSIONS_VALUES = ['mp4', 'mkv', 'mov', 'avi', 'webm', 'gif', 'm4v', 'flv', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'opus', 'm4a', 'wma', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'svg'] as const
+export type MediaType = typeof MEDIA_EXTENSIONS_VALUES[number]

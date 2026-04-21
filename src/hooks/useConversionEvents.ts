@@ -3,23 +3,33 @@ import { IpcRendererEvent } from 'electron'
 import { type LogEntry, useConversionStore } from '../store/conversionStore'
 
 export function useConversionEvents() {
-    // This hook sets up IPC listeners for conversion events and updates the conversion store accordingly.
-  const { setProgress, setDone, setError, setCancelled, appendLog } = useConversionStore()
+  const {
+    setItemProgress,
+    setItemDone,
+    setItemError,
+    setItemCancelled,
+    appendLog,
+  } = useConversionStore()
 
   useEffect(() => {
-    const onProgress = (_e: IpcRendererEvent, data: { percent: number; speed: string; estimatedRemainingTime: number }) => {
-      setProgress(data.percent, data.speed, data.estimatedRemainingTime)
+    const onProgress = (
+      _e: IpcRendererEvent,
+      data: { id: string; percent: number; speed: string; estimatedRemainingTime: number },
+    ) => {
+      setItemProgress(data.id, data.percent, data.speed, data.estimatedRemainingTime)
     }
 
-    const onDone = (_e: IpcRendererEvent, data: { outputPath: string }) => {
-      setDone(data.outputPath)
+    const onDone = (_e: IpcRendererEvent, data: { id: string; outputPath: string }) => {
+      setItemDone(data.id, data.outputPath)
     }
 
-    const onError = (_e: IpcRendererEvent, data: { message: string }) => {
-      setError(data.message)
+    const onError = (_e: IpcRendererEvent, data: { id: string; message: string }) => {
+      setItemError(data.id, data.message)
     }
 
-    const onCancelled = () => setCancelled()
+    const onCancelled = (_e: IpcRendererEvent, data: { id: string }) => {
+      setItemCancelled(data.id)
+    }
 
     const onLog = (_e: IpcRendererEvent, data: LogEntry) => {
       appendLog(data)
