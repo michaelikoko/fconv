@@ -1,5 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent, shell } from 'electron'
 import fs from 'node:fs'
+import { FFMPEG_EXTENSIONS } from '../../shared/fileFormats'
+import { DOCUMENT_EXTENSION_VALUES } from '../utils/libreoffice'
 
 
 async function handleFileOpen() {
@@ -7,17 +9,17 @@ async function handleFileOpen() {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile'],
     filters: [
-      { name: 'Video',         extensions: ['mp4', 'mkv', 'mov', 'avi', 'webm'] },
-      { name: 'Audio',         extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'opus', 'm4a'] },
-      { name: 'Image',         extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] },
-      { name: 'Document',      extensions: ['doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'csv', 'ppt', 'pptx', 'odp', 'pdf', 'txt'] },
+      { name: 'Video',         extensions: [...FFMPEG_EXTENSIONS.VIDEO_EXTENSIONS] },
+      { name: 'Audio',         extensions: [...FFMPEG_EXTENSIONS.AUDIO_EXTENSIONS] },
+      { name: 'Image',         extensions: [...FFMPEG_EXTENSIONS.IMAGE_EXTENSIONS] },
+      { name: 'Document',      extensions: [...DOCUMENT_EXTENSION_VALUES] },
       {
         name: 'All Supported',
         extensions: [
-          'mp4', 'mkv', 'mov', 'avi', 'webm',
-          'mp3', 'wav', 'ogg', 'flac', 'aac', 'opus', 'm4a',
-          'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
-          'doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'csv', 'ppt', 'pptx', 'odp', 'pdf', 'txt'
+        ...FFMPEG_EXTENSIONS.VIDEO_EXTENSIONS,
+        ...FFMPEG_EXTENSIONS.AUDIO_EXTENSIONS,
+        ...FFMPEG_EXTENSIONS.IMAGE_EXTENSIONS,
+        ...DOCUMENT_EXTENSION_VALUES,
         ],
       },
     ],

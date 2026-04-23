@@ -3,13 +3,13 @@ import { useTransferStore } from '../store/transferStore'
 import { useAppStore } from '../store/appStore'
 
 export default function TopBar() {
-
   const { isServerRunning, localIP, port, connectedClients } = useTransferStore()
-  const {libreOfficeAvailable, isLoaded} = useAppStore()
+  const { libreOfficeAvailable, isLoaded } = useAppStore()
 
   const serverUrl = `http://${localIP}:${port}`
 
-    const handleLoClick = () => {
+  const handleLoClick = () => {
+    /* Handle click event for LibreOffice status badge. Open download link if not available. */
     if (!libreOfficeAvailable) {
       window.openExternal(
         'https://www.libreoffice.org/download/download-libreoffice/',
@@ -17,24 +17,9 @@ export default function TopBar() {
     }
   }
 
-return (
-    <header className="drag-region flex items-center justify-between px-5 h-11
+  return (
+    <header className="drag-region flex items-center justify-end px-5 h-11
                         bg-base-200 border-b border-base-300 shrink-0">
-
-      {/* Left — OS label */}
-      <div className="flex items-center gap-3">
-        <span className="text-primary text-xs font-mono font-bold tracking-widest">
-          FCONV_OS
-        </span>
-        {
-          /*          
-        <span className="text-base-300 text-xs font-mono">|</span>
-        <span className="text-neutral-content text-xs font-mono tracking-widest">
-          NODE_ID: 0X0000
-        </span>
-          */
-        }
-      </div>
 
       {/* Right — status indicators */}
       <div className="no-drag flex items-center gap-5">
@@ -55,9 +40,9 @@ return (
             {/* LO badge */}
             <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 border
                               ${libreOfficeAvailable
-                                ? 'text-success border-success/40 bg-success/10'
-                                : 'text-warning border-warning/40 bg-warning/10'
-                              }`}
+                ? 'text-success border-success/40 bg-success/10'
+                : 'text-warning border-warning/40 bg-warning/10'
+              }`}
             >
               LibreOffice
             </span>

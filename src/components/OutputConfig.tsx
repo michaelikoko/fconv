@@ -48,7 +48,6 @@ export default function OutputConfig() {
   return (
     <aside className="w-75 bg-base-100 border-l border-base-300 flex flex-col shrink-0">
 
-      {/* Header */}
       <div className="flex items-center gap-2 px-5 py-3 border-b border-base-300">
         <Settings2 size={13} className="text-primary" strokeWidth={2} />
         <span className="text-primary text-[10px] font-mono font-bold tracking-[0.2em]">
@@ -156,14 +155,18 @@ export default function OutputConfig() {
 
       {/* System info */}
       <div className="border-t border-base-300 px-5 py-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="text-[10px] font-mono text-neutral-content tracking-wider">
-            GPU_ACCELERATION
-          </span>
-          <span className="text-[10px] font-mono text-warning tracking-wider">
-            DETECTING...
-          </span>
-        </div>
+        {
+          /*     
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-mono text-neutral-content tracking-wider">
+              GPU_ACCELERATION
+            </span>
+            <span className="text-[10px] font-mono text-warning tracking-wider">
+              DETECTING...
+            </span>
+          </div>
+          */
+        }
         <div className="flex justify-between items-center">
           <span className="text-[10px] font-mono text-neutral-content tracking-wider">
             LIBREOFFICE
@@ -175,7 +178,7 @@ export default function OutputConfig() {
           </span>
         </div>
         <div className="flex items-end gap-px pt-2 h-8">
-          {[3,5,8,4,10,6,3,7,5,9,4,6,8,3,5,7,4,9,6,3,8,5,10,4,7].map((h, i) => (
+          {[3, 5, 8, 4, 10, 6, 3, 7, 5, 9, 4, 6, 8, 3, 5, 7, 4, 9, 6, 3, 8, 5, 10, 4, 7].map((h, i) => (
             <div
               key={i}
               className="flex-1 bg-base-300"

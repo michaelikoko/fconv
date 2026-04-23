@@ -1,19 +1,14 @@
 import { FolderOpen, RefreshCw, Upload } from 'lucide-react'
-import { useTransferStore, ReceivedFile } from '../store/transferStore'
+import { useTransferStore } from '../store/transferStore'
 import { FilePath, useConversionStore } from '../store/conversionStore'
-import { detectFileType, formatFileSize, getFileIcon } from '../utils/fileType'
+import { detectFileType, formatFileSize, getFileIcon, timeAgo } from '../utils/fileType'
 import { useNavigate } from 'react-router'
-
-function timeAgo(date: Date): string {
-  const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
-  if (secs < 60)   return `${secs}S AGO`
-  if (secs < 3600) return `${Math.floor(secs / 60)}M AGO`
-  return `${Math.floor(secs / 3600)}H AGO`
-}
+import { ReceivedFile } from '../../shared/types'
 
 
 function UploadingRow({ name, progress }: { name: string; progress: number }) {
-  //console.log('rendering uploading row', name, progress)
+  /* Row component for files currently being received/uploaded. */
+
   return (
     <div className="flex items-center gap-3 px-5 py-3 border-b border-base-300 bg-primary/3">
       <div className="w-7 h-7 bg-base-300 border border-primary/30 flex items-center justify-center shrink-0">
@@ -28,7 +23,7 @@ function UploadingRow({ name, progress }: { name: string; progress: number }) {
           />
         </div>
         <p className="text-primary font-mono text-[9px] tracking-wider mt-0.5">
-          RECIEVING... {progress}%
+          RECEIVING... {progress}%
         </p>
       </div>
     </div>
@@ -39,36 +34,23 @@ function UploadingRow({ name, progress }: { name: string; progress: number }) {
 
 interface ReceivedFileRowProps {
   file:     ReceivedFile
-  compact?: boolean
 }
 
-function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
+function ReceivedFileRow({ file }: ReceivedFileRowProps) {
   const Icon     = getFileIcon(file.name)
   const navigate = useNavigate()
   const { setFilePath } = useConversionStore()
 
   const handleShowInFolder = async () => {
-    await window.ipcRenderer.invoke('files:show-file-in-folder', file.savedPath)
+    /* Ask main process to open file location in system file explorer. */
+    await window.showFileInFolder(file.savedPath)
   }
 
   const handleConvert = () => {
+    /* Set the selected file in conversion store and navigate to convert page. */
     const fileObj: FilePath = { path: file.savedPath, size: file.size }
     setFilePath(fileObj, detectFileType(fileObj))
     navigate('/')
-  }
-
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2 px-5 py-2.5 border-b border-base-300">
-        <div className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
-        <p className="text-base-content font-mono text-[10px] tracking-wider flex-1 truncate">
-          {file.name}
-        </p>
-        <span className="text-neutral-content font-mono text-[9px] tracking-wider shrink-0">
-          {timeAgo(file.receivedAt)}
-        </span>
-      </div>
-    )
   }
 
   return (
@@ -108,48 +90,36 @@ function ReceivedFileRow({ file, compact }: ReceivedFileRowProps) {
 }
 
 
-interface ReceivedFileListProps {
-  compact?:  boolean
-  maxItems?: number   // limits displayed rows — used for the right panel ticker
-}
-
-export default function ReceivedFileList({ compact, maxItems }: ReceivedFileListProps) {
+export default function ReceivedFileList() {
   const { receivedFiles, uploadingFiles } = useTransferStore()
 
-  // Sort newest-first by receivedAt
-  const sorted = Array.from(receivedFiles.values()).sort(
+  const sortedReceivedFiles = Array.from(receivedFiles.values()).sort(
     (a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
   )
-
-  const displayed  = maxItems ? sorted.slice(0, maxItems) : sorted
   const uploading  = Array.from(uploadingFiles.values())
-  const isEmpty    = displayed.length === 0 && uploading.length === 0
+  const isEmpty    = sortedReceivedFiles.length === 0 && uploading.length === 0
 
   if (isEmpty) {
     return (
-      <div className={`flex flex-col items-center justify-center gap-2
-                       ${compact ? 'py-4' : 'flex-1 py-8'}`}>
+      <div className="flex flex-col items-center justify-center gap-2 flex-1 py-8">
         <span className="text-neutral-content font-mono text-[10px] tracking-widest">
           NO_FILES_RECEIVED
         </span>
-        {!compact && (
           <span className="text-base-300 font-mono text-[9px] tracking-widest">
             Files sent from phone will appear here
           </span>
-        )}
+        
       </div>
     )
   }
 
   return (
-    <div className={compact ? '' : 'flex-1 overflow-y-auto'}>
-      {/* Active uploads pinned to the top — no maxItems limit */}
+    <div className='flex-1 overflow-y-auto'>
       {uploading.map(u => (
         <UploadingRow key={u.id} name={u.fileName} progress={u.progress} />
       ))}
-      {/* Completed files sorted newest-first */}
-      {displayed.map(file => (
-        <ReceivedFileRow key={file.id} file={file} compact={compact} />
+      {sortedReceivedFiles.map(file => (
+        <ReceivedFileRow key={file.id} file={file} />
       ))}
     </div>
   )

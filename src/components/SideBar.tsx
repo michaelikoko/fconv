@@ -4,9 +4,9 @@ import type { LucideIcon } from 'lucide-react'
 interface NavItem { id: string; label: string; icon: LucideIcon }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'convert',  label: 'CONVERT',  icon: RefreshCw      },
-  { id: 'transfer', label: 'TRANSFER', icon: ArrowLeftRight  },
-  //{ id: 'files',    label: 'FILES',    icon: FolderOpen      },
+  { id: 'convert', label: 'CONVERT', icon: RefreshCw },
+  { id: 'transfer', label: 'TRANSFER', icon: ArrowLeftRight },
+  //{ id: 'files', label: 'FILES', icon: FolderOpen }, // Implement later
 ]
 
 interface SideBarProps {

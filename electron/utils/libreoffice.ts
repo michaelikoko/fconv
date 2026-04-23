@@ -2,13 +2,14 @@ import { execSync, spawn } from 'node:child_process'
 import path from 'node:path'
 import fs from 'node:fs'
 import { BrowserWindow } from 'electron'
+import { isLibreOfficeDocumentExt, isLibreOfficePresentationExt, isLibreOfficeSpreadsheetExt, LIBREOFFICE_EXTENSIONS } from '../../shared/fileFormats'
 
 
 export const DOCUMENT_EXTENSION_VALUES = [
-    'doc', 'docx', 'odt', 'rtf',
-    'xls', 'xlsx', 'ods', 'csv',
-    'ppt', 'pptx', 'odp',
-    'pdf', 'txt'
+    ...LIBREOFFICE_EXTENSIONS.DOCUMENTS,
+    ...LIBREOFFICE_EXTENSIONS.SPREADSHEETS,
+    ...LIBREOFFICE_EXTENSIONS.PRESENTATIONS,
+    ...LIBREOFFICE_EXTENSIONS.PDF,
 ] as const
 
 export type DocumentType = (typeof DOCUMENT_EXTENSION_VALUES)[number] // Creates a union type of the array values, e.g. 'doc' | 'docx' | ...
@@ -16,15 +17,17 @@ export type DocumentType = (typeof DOCUMENT_EXTENSION_VALUES)[number] // Creates
 export const DOCUMENT_EXTENSIONS: ReadonlySet<DocumentType> = new Set(DOCUMENT_EXTENSION_VALUES)
 
 export function isDocumentFile(inputPath: string): boolean {
+    /* Checks if the file extension indicates a document type that LibreOffice can handle. */
     const ext = inputPath.split('.').pop()?.toLowerCase() ?? ''
     if (!ext) return false
     return DOCUMENT_EXTENSIONS.has(ext as DocumentType)
 }
 
-// Do type guard to determine if a string is a valid DocumentType
 export function isValidDocumentType(value: string): value is DocumentType {
+    /* Type guard to check if a string is a valid LibreOffice DocumentType. */
     return DOCUMENT_EXTENSIONS.has(value as DocumentType)
 }
+
 
 function getCandidates(): string[] {
     switch (process.platform) {
@@ -55,11 +58,11 @@ function getCandidates(): string[] {
     }
 }
 
-/**
- * Resolves the LibreOffice binary path by trying each candidate.
- * Returns the first working path, or null if none found.
- */
 export function resolveLibreOfficePath(): string | null {
+    /**
+     * Resolves the LibreOffice binary path by trying each candidate.
+     * Returns the first working path, or null if none found.
+     */
     for (const candidate of getCandidates()) {
         try {
             // For absolute paths, check existence first
@@ -68,14 +71,14 @@ export function resolveLibreOfficePath(): string | null {
             }
             // Run --version to confirm it actually works
             execSync(`"${candidate}" --version`, { stdio: 'ignore', timeout: 5000 })
-            console.log(`LibreOffice found at: ${candidate}`)
+            //console.log(`LibreOffice found at: ${candidate}`)
             return candidate
         } catch {
             // Not found or not executable — try next
             continue
         }
     }
-    console.log('LibreOffice not found on this system')
+    // console.log('LibreOffice not found on this system')
     return null
 }
 
@@ -93,10 +96,9 @@ export function isLibreOfficeAvailable(): boolean {
     return getLibreOfficePath() !== null
 }
 
-// ── Filter mapping ────────────────────────────────────────────────────────────
+// Filter mapping 
 // LibreOffice uses named filters for output formats.
 // Full list: https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html
-
 const WRITER_FILTERS: Record<string, string> = {
     pdf: 'writer_pdf_Export',
     docx: 'MS Word 2007 XML',
@@ -122,18 +124,12 @@ const IMPRESS_FILTERS: Record<string, string> = {
 
 // Input extension → filter map
 function getFilterMap(inputExt: string): Record<string, string> {
-    const writerExts: DocumentType[] = ['doc', 'docx', 'odt', 'rtf', 'txt']
-    const calcExts: DocumentType[] = ['xls', 'xlsx', 'ods', 'csv']
-    const impressExts: DocumentType[] = ['ppt', 'pptx', 'odp']
 
     if (!isValidDocumentType(inputExt)) return WRITER_FILTERS // fallback to something rather than fail outright
 
-    if (writerExts.includes(inputExt)) return WRITER_FILTERS
-    if (calcExts.includes(inputExt)) return CALC_FILTERS
-    if (impressExts.includes(inputExt)) return IMPRESS_FILTERS
-
-    // PDF can be converted by writer
-    if (inputExt === 'pdf') return WRITER_FILTERS
+    if (isLibreOfficeDocumentExt(inputExt)) return WRITER_FILTERS
+    if (isLibreOfficeSpreadsheetExt(inputExt)) return CALC_FILTERS
+    if (isLibreOfficePresentationExt(inputExt)) return IMPRESS_FILTERS
 
     return WRITER_FILTERS // fallback
 }
@@ -157,23 +153,16 @@ function resolveLibreOfficeOutputPath(
     }
 }
 
-/*
-export interface LibreOfficeConversionOptions {
-  inputPath:   string
-  outputFormat: string  // e.g. 'pdf', 'docx'
-  outputDir:   string
-}*/
-
-/**
- * Runs a LibreOffice headless conversion.
- * Emits log and done/error events to the renderer.
- */
 export function runLibreOffice(
     inputPath: string,
     outputFormat: DocumentType,
     outputDir: string,
     win: BrowserWindow,
 ): Promise<string> {
+    /**
+     * Runs a LibreOffice headless conversion.
+     * Emits log and done/error events to the renderer.
+     */
     return new Promise((resolve, reject) => {
         const loBin = getLibreOfficePath()
         if (!loBin) {
@@ -212,7 +201,7 @@ export function runLibreOffice(
             inputPath,
         ]
 
-        console.log(`Running: "${loBin}" ${args.join(' ')}`)
+        //console.log(`Running: "${loBin}" ${args.join(' ')}`)
 
         const child = spawn(loBin, args)
         let stderr = ''

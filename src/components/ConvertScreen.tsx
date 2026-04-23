@@ -14,7 +14,6 @@ export default function ConvertScreen() {
         </div>
         <ProgressBar />
       </div>
-
       <OutputConfig />
     </div>
   )

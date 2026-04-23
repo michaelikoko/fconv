@@ -1,7 +1,6 @@
 import { Settings, FolderOpen } from 'lucide-react'
 import { useSettingsStore, AppSettings } from '../store/settingsStore'
 
-// ── Section label ─────────────────────────────────────────────────────────────
 
 function SectionLabel({ label }: { label: string }) {
   return (
@@ -11,7 +10,6 @@ function SectionLabel({ label }: { label: string }) {
   )
 }
 
-// ── Toggle row ────────────────────────────────────────────────────────────────
 
 interface ToggleRowProps {
   label: string
@@ -45,8 +43,6 @@ function ToggleRow({ label, description, value, onChange }: ToggleRowProps) {
 }
 
 /* UNUSED for now so commented out
-// ── Text row ──────────────────────────────────────────────────────────────────
-
 interface TextRowProps {
   label:       string
   description: string
@@ -77,7 +73,6 @@ function TextRow({ label, description, value, placeholder, onChange }: TextRowPr
   )
 }
 */
-// ── Number row ────────────────────────────────────────────────────────────────
 
 interface NumberRowProps {
   label: string
@@ -111,7 +106,6 @@ function NumberRow({ label, description, value, min, max, onChange }: NumberRowP
   )
 }
 
-// ── Select row ────────────────────────────────────────────────────────────────
 
 interface SelectRowProps {
   label: string
@@ -145,7 +139,6 @@ function SelectRow({ label, description, value, options, onChange }: SelectRowPr
   )
 }
 
-// ── Directory picker row ──────────────────────────────────────────────────────
 
 interface DirectoryRowProps {
   label: string
@@ -160,6 +153,7 @@ function DirectoryRow({
   label, description, value, placeholder, dialogTitle, onChange,
 }: DirectoryRowProps) {
   const handlePick = async () => {
+    /* Open directory picker dialog */
     const dir = await window.pickDirectorySettings(dialogTitle)
     if (dir) onChange(dir)
   }
@@ -195,7 +189,6 @@ function DirectoryRow({
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const { settings, isDirty, isLoaded, updateSetting, markSaved, discardChanges, resetToDefaults } = useSettingsStore()
@@ -204,6 +197,7 @@ export default function SettingsPage() {
     (value: AppSettings[K]) => updateSetting(key, value)
 
   const handleSave = async () => {
+    /** Save settings to the main process */
     await window.saveSettings(settings)
     markSaved()
   }
@@ -369,33 +363,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-
-      {/*      
-      <div className="px-5 py-4 border-t border-base-300 flex items-center justify-between shrink-0">
-        <div className="flex flex-col">
-          <span className="text-neutral-content font-mono text-[9px] tracking-widest">
-            {isDirty ? 'UNSAVED_CHANGES' : 'ALL_CHANGES_SAVED'}
-          </span>
-          <span className="text-neutral-content/75 font-mono text-[9px] tracking-widest mt-0.5">
-            PORT and PATH changes require restart
-          </span>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={!isDirty}
-          className={`font-mono font-bold text-xs tracking-[0.2em] px-8 py-3
-                      transition-colors cursor-pointer
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      ${isDirty
-                        ? 'bg-primary hover:bg-primary/90 text-primary-content'
-                        : 'bg-base-300 text-neutral-content'
-                      }`}
-        >
-          WRITE_CONFIG
-        </button>
-      </div>
-       */}
-
     </div>
   )
 }

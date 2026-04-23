@@ -1,16 +1,15 @@
 import { X } from 'lucide-react'
-import { useTransferStore, StagedFile } from '../store/transferStore'
+import { useTransferStore } from '../store/transferStore'
 import { formatFileSize, getFileIcon } from '../utils/fileType'
 import crypto from 'crypto'
+import { StagedFile } from '../../shared/types'
 
 function StagedFileRow({ file }: { file: StagedFile }) {
-  //const removeStagedFile = useTransferStore((s) => s.removeStagedFile)
   const { removeStagedFile } = useTransferStore()
   const Icon = getFileIcon(file.name)
 
   const handleRemove = async () => {
-    // Unstage on the backend first, then remove from store
-    //await window.ipcRenderer.invoke('transfer:unstage-file', file.id)
+    /* Remove file from staged list and notify main process to unstage it. */
     await window.unstageFile(file.id)
     removeStagedFile(file.id as crypto.UUID)
   }
@@ -40,7 +39,6 @@ function StagedFileRow({ file }: { file: StagedFile }) {
 }
 
 export default function StagedFileList() {
-  //const stagedFiles = useTransferStore((s) => s.stagedFiles)
   const {stagedFiles} = useTransferStore()
   
   if (stagedFiles.size === 0) {

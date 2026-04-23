@@ -2,9 +2,11 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { app } from 'electron'
 import crypto from 'crypto'
+import { getSettings } from '../ipc/settings'
+import { isFfmpegVideoExt } from '../../shared/fileFormats'
 
 export function resolveOutputPath(inputPath: string, outputFormat: string, directory: string | null = null): string {
-  // Generate an output file path based on the input file, desired output format, and optional output directory
+  /* Generate an output file path based on the input file, desired output format, and optional output directory */
   const dir  = directory || path.dirname(inputPath) // Use same directory as input by default if no directory is provided
   const stem = path.basename(inputPath, path.extname(inputPath))
   const ext  = outputFormat.startsWith('.') ? outputFormat : `.${outputFormat}`
@@ -21,8 +23,8 @@ export function resolveOutputPath(inputPath: string, outputFormat: string, direc
   }
 }
 
-
 export function parseDuration(line: string): number | null {
+  /* Parses a duration string from ffmpeg output (e.g. "Duration: 00:03:45.67") and converts it to total seconds. */
   const match = line.match(/Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/)
   if (!match) return null
   const hours        = parseInt(match[1])
@@ -33,6 +35,7 @@ export function parseDuration(line: string): number | null {
 }
 
 export function parseCurrentTime(line: string): number | null {
+  /* Parses the current encoding time from ffmpeg output (e.g. "time=00:01:23.45") and converts it to total seconds. */
   const match = line.match(/time=(\d+):(\d+):(\d+)\.(\d+)/)
   if (!match) return null
   const hours        = parseInt(match[1])
@@ -44,12 +47,15 @@ export function parseCurrentTime(line: string): number | null {
 
 
 export function calcPercent(current: number, total: number): number {
+  /* Calculates the percentage of completion based on current and total durations. */
   if (total === 0) return 0
   return Math.min((current / total) * 100, 100)
 }
 
 
 export function shouldLog(line: string): boolean {
+  /* Determines if a given line from ffmpeg output contains relevant information to log or send to the renderer. */
+
   if (line.includes('Duration:'))    return true
   if (line.includes('Stream #') && (line.includes('Video:') || line.includes('Audio:'))) return true
   if (line.includes('Output #'))     return true
@@ -60,6 +66,7 @@ export function shouldLog(line: string): boolean {
 }
 
 export function formatLogMessage(line: string): { message: string; level: string } {
+  /* Formats a raw ffmpeg output line into a structured message with an associated log level. */
   if (line.includes('Duration:')) {
     const match = line.match(/Duration:\s*([\d:\\.]+)/)
     return { message: `DURATION_DETECTED: ${match?.[1] ?? '—'}`, level: 'info' }
@@ -122,6 +129,33 @@ export function getFFmpegPath(): string {
   // Fall back to system FFmpeg during development
   return 'ffmpeg'
 }
+
+export function buildFFmpegArgs(
+  inputPath: string,
+  outputPath: string
+): string[] {
+  /* Builds the command-line arguments for the FFmpeg process. */
+  const settings = getSettings()
+  const args: string[] = ['-i', inputPath]
+
+  // Hardware acceleration — prepend -hwaccel auto before -i
+  if (settings.hwAcceleration) {
+    args.unshift('-hwaccel', 'auto')
+  }
+
+  // Thread count — 0 means FFmpeg decides
+  if (settings.threadCount > 0) {
+    args.push('-threads', String(settings.threadCount))
+  }
+
+  const outputExt = outputPath.split('.').pop()?.toLowerCase() ?? ''
+  if (isFfmpegVideoExt(outputExt)) {
+    args.push('-preset', 'fast') // Use a faster preset for video encoding to balance speed and quality
+  }
+  args.push(outputPath)
+  return args
+}
+
 
 export function isValidUUID(id: string | undefined): id is crypto.UUID {
   // Type guard to validate if a string is a valid UUID (version 4)

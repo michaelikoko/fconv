@@ -6,21 +6,16 @@ import {
   applySystemSettings,
 } from '../utils/settings'
 
-// Module-scoped cached settings — loaded once on startup,
-// updated whenever the user saves. All other handlers (convert, transfer)
-// import getSettings() to read current values.
+
 let currentSettings: AppSettings = loadSettings()
 
-/**
- * Returns the current in-memory settings.
- * Use this in other IPC handlers instead of re-reading from disk.
- */
+
 export function getSettings(): AppSettings {
   return currentSettings
-} // The functioon looks useless, so might remove it later, not so useless used in transfer.ts
-
+} 
 
 function handleGetSettings(): AppSettings {
+  /* A repeat of getSettings() just for IPC handler naming consistency */
   return currentSettings
 }
 

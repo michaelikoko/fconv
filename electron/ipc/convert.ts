@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent } from 'electron'
 import { spawn, ChildProcess } from 'node:child_process'
-import { getFFmpegPath } from '../utils/ffmpeg'
+import { buildFFmpegArgs, getFFmpegPath } from '../utils/ffmpeg'
 import {
   resolveOutputPath,
   parseDuration,
@@ -11,58 +11,32 @@ import {
 } from '../utils/ffmpeg'
 import { getSettings } from './settings'
 import { resolvedOutputDir } from '../utils/settings'
-import { DocumentType, getLibreOfficePath, isDocumentFile, runLibreOffice } from '../utils/libreoffice'
+import { type DocumentType, getLibreOfficePath, isDocumentFile, runLibreOffice } from '../utils/libreoffice'
 
 // Tracks the active FFmpeg process so it can be killed on cancel.
-// Module-scoped so both handlers share the same reference.
 let activeFFmpegProcess: ChildProcess | null = null
-
-function buildFFmpegArgs(
-  inputPath: string,
-  outputPath: string
-): string[] {
-  const settings = getSettings()
-  const args: string[] = ['-i', inputPath]
-
-  // Hardware acceleration — prepend -hwaccel auto before -i
-  if (settings.hwAcceleration) {
-    args.unshift('-hwaccel', 'auto')
-  }
-
-  // Thread count — 0 means FFmpeg decides
-  if (settings.threadCount > 0) {
-    args.push('-threads', String(settings.threadCount))
-  }
-  const videoOutputExts = ['mp4', 'mkv', 'mov', 'avi', 'webm', 'm4v', 'flv']
-  const outputExt = outputPath.split('.').pop()?.toLowerCase() ?? ''
-  if (videoOutputExts.includes(outputExt)) {
-    args.push('-preset', 'fast')
-  }
-  args.push(outputPath)
-  return args
-}
-
-/**
- * Spawns an FFmpeg process to convert inputPath to outputFormat.
- *
- * Emits to renderer via webContents.send:
- *   'conversion-progress'  → { percent, speed, estimatedRemainingTime }
- *   'conversion-log'       → { time, message, level }
- *   'conversion-done'      → { outputPath }
- *   'conversion-error'     → { message }
- *   'conversion-cancelled'   (no payload)
- */
 
 function runFFmpegConversion(
   inputPath: string,
   outputPath: string,
   win: BrowserWindow,
 ): void {
+  /**
+ * Spawns an FFmpeg process to convert inputPath to outputFormat.
+ *
+ * Emits to renderer via webContents.send:
+ *   'conversion-progress'  → { percent, speed, estimatedRemainingTime }
+ *   'conversion-log'       → { time, message, level }, Which is type LogEntry in conversionStore
+ *   'conversion-done'      → { outputPath }
+ *   'conversion-error'     → { message }
+ *   'conversion-cancelled' → (no payload)
+ */
+
   const ffmpegPath = getFFmpegPath()
   const args = buildFFmpegArgs(inputPath, outputPath)
 
-  console.log(`Converting ${inputPath} → ${outputPath}`)
-  console.log(`FFmpeg args: ffmpeg ${args.join(' ')}`)
+  //console.log(`Converting ${inputPath} → ${outputPath}`)
+  //console.log(`FFmpeg args: ffmpeg ${args.join(' ')}`)
 
   const child = spawn(ffmpegPath, args)
   activeFFmpegProcess = child
@@ -96,7 +70,7 @@ function runFFmpegConversion(
         const duration = parseDuration(trimmed)
         if (duration !== null) {
           totalDuration = duration
-          console.log('Total duration:', totalDuration, 'seconds')
+          //console.log('Total duration:', totalDuration, 'seconds')
         }
       }
 
@@ -124,7 +98,7 @@ function runFFmpegConversion(
 
     // SIGKILL means the user confirmed cancellation via handleCancelConversion
     if (signal === 'SIGKILL') {
-      console.log('Conversion cancelled by user.')
+      //console.log('Conversion cancelled by user.')
       win.webContents.send('conversion-cancelled')
       return
     }
@@ -148,9 +122,10 @@ async function handleConvertFile(
   const settings = getSettings()
   const win = BrowserWindow.getFocusedWindow()!
   const outputDir = resolvedOutputDir(settings, inputPath) // Get output directory based on settings or default to input file's directory
-  //const outputPath = resolveOutputPath(inputPath, outputFormat, outputDir)
+
   if (isDocumentFile(inputPath)) {
     // For document files, use LibreOffice for conversion
+
     if (!getLibreOfficePath()) {
       // LibreOffice is not available, send an error back to the renderer
       win.webContents.send('conversion-error', {

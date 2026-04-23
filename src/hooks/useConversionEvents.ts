@@ -3,7 +3,6 @@ import { IpcRendererEvent } from 'electron'
 import { type LogEntry, useConversionStore } from '../store/conversionStore'
 
 export function useConversionEvents() {
-    // This hook sets up IPC listeners for conversion events and updates the conversion store accordingly.
   const { setProgress, setDone, setError, setCancelled, appendLog } = useConversionStore()
 
   useEffect(() => {

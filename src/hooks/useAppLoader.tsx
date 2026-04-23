@@ -9,7 +9,7 @@ export function useAppLoader() {
     if (isLoaded) return
     
     window.checkLibreOfficeAvailability().then((info) => {
-        console.log('LibreOffice availability:', info)
+        //console.log('LibreOffice availability:', info)
       if (info) setAppInfo(info)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,6 +1,6 @@
-import { FileImageIcon, FileMusicIcon, FileTextIcon, FileUp, FileVideoCameraIcon } from 'lucide-react'
-import { detectFileType, formatFileSize } from '../utils/fileType'
-import { type FileType, useConversionStore } from '../store/conversionStore'
+import { FileUp } from 'lucide-react'
+import { detectFileType, formatFileSize, getFileIcon } from '../utils/fileType'
+import { useConversionStore } from '../store/conversionStore'
 
 function CornerLabels({ fileSize }: { fileSize: number | null }) {
   return (
@@ -29,20 +29,11 @@ function BarDecor() {
   )
 }
 
-function getFileTypeIcon(fileType: FileType, converting: boolean) {
-  const cls = `size-10 strokeWidth={1} ${converting ? 'text-primary/50' : 'text-neutral-content group-hover:text-primary'} transition-colors duration-200`
-  if (fileType === 'video') return <FileVideoCameraIcon size={40} strokeWidth={1} className={cls} />
-  if (fileType === 'audio') return <FileMusicIcon size={40} strokeWidth={1} className={cls} />
-  if (fileType === 'image') return <FileImageIcon size={40} strokeWidth={1} className={cls} />
-  if (fileType === 'document') return <FileTextIcon size={40} strokeWidth={1} className={cls} />
-  return <FileUp size={40} strokeWidth={1} className={cls} />
-}
-
 export default function DropZone() {
-
-  const {fileType, filePath, isConverting, setFilePath, clearBuffer} = useConversionStore()
+  const { filePath, isConverting, setFilePath, clearBuffer } = useConversionStore()
 
   const handleDropZoneClick = async () => {
+    /* Open file dialog and set file path and type in store. */
     const filePathResult = await window.openFile()
     if (filePathResult) {
       const fileTypeResult = detectFileType(filePathResult)
@@ -53,14 +44,14 @@ export default function DropZone() {
 
   if (filePath) {
     const fileName = filePath.path.split('/').pop()
-
+    const Icon = getFileIcon(fileName)
     return (
       <div className={`flex-1 border border-base-300 m-4 flex flex-col relative
                        ${isConverting ? 'opacity-70' : ''}`}>
         <CornerLabels fileSize={filePath.size} />
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          {getFileTypeIcon(fileType, isConverting)}
+          <Icon size={40} strokeWidth={1} className={`size-10 strokeWidth={1} ${isConverting ? 'text-primary/50' : 'text-neutral-content group-hover:text-primary'} transition-colors duration-200`} />
 
           <div className="text-center px-4">
             <p className="text-base-content font-mono font-bold tracking-wider text-sm truncate max-w-xs">

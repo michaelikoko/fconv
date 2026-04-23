@@ -1,12 +1,6 @@
-import { useTransferStore, SentFile } from '../store/transferStore'
-import { getFileIcon, formatFileSize } from '../utils/fileType'
-
-function timeAgo(date: Date): string {
-  const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
-  if (secs < 60)   return `${secs}S AGO`
-  if (secs < 3600) return `${Math.floor(secs / 60)}M AGO`
-  return `${Math.floor(secs / 3600)}H AGO`
-}
+import { SentFile } from '../../shared/types'
+import { useTransferStore } from '../store/transferStore'
+import { getFileIcon, formatFileSize, timeAgo } from '../utils/fileType'
 
 function SentFileRow({ file }: { file: SentFile }) {
   const Icon = getFileIcon(file.name)

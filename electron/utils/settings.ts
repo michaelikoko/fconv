@@ -39,21 +39,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
 }
 
 export function resolvedTempPath(settings: AppSettings): string {
+  /* Resolve the temporary directory for FFmpeg to use during conversion. */
   return settings.tempFilePath.trim() || os.tmpdir()
 }
 
 export function resolvedOutputDir(settings: AppSettings, inputFilePath: string): string {
-  // Resolve output directory for converted files
+  /* Resolve output directory for converted files */
   return settings.defaultOutputDir.trim() || path.dirname(inputFilePath)
 }
 
 export function resolvedReceivedDir(settings: AppSettings): string {
-  // Resolve directory for files received from the phone
+  /* Resolve directory for files received from the phone */
   return settings.receivedFilesDir.trim()
     || path.join(os.homedir(), 'Downloads', 'FCONV', 'received')
 }
 
 function configPath(): string {
+  /* Returns the path to the settings.json file in the user's app data directory. */
   // app.getPath('userData') is platform-specific:
   // Linux:   ~/.config/<appName>
   // macOS:   ~/Library/Application Support/<appName>
@@ -62,6 +64,7 @@ function configPath(): string {
 }
 
 function validate(raw: Partial<AppSettings>): AppSettings {
+  /* Validate and sanitize the settings */
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
@@ -75,26 +78,23 @@ function validate(raw: Partial<AppSettings>): AppSettings {
 
 export function loadSettings(): AppSettings {
   const filePath = configPath()
-  console.log(filePath)
+
   if (!fs.existsSync(filePath)) {
-    console.log('No settings file found, using defaults')
+    //console.log('No settings file found, using defaults')
     return { ...DEFAULT_SETTINGS }
   }
 
   try {
     const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
     const settings = validate(raw)
-    console.log('Settings loaded from', filePath)
     return settings
   } catch (err) {
-    console.error('Failed to parse settings file, using defaults:', err)
     return { ...DEFAULT_SETTINGS }
   }
 }
 
 
 export function saveSettings(settings: AppSettings): void {
-  console.log('saving settings')
   const filePath = configPath()
 
   try {

@@ -46,7 +46,7 @@ function createWindow() {
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools({ mode: 'bottom' })
+    //win.webContents.openDevTools({ mode: 'bottom' })
   } else {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
@@ -78,6 +78,5 @@ app.whenReady().then(async () => {
     serverReady,
     new Promise(resolve => win?.webContents.once('did-finish-load', resolve))
   ])
-  console.log('Info after promise resolution:', serverInfo)
   win?.webContents.send('transfer:server-ready', serverInfo)
 }) 

@@ -4,7 +4,7 @@ import TopBar from './components/TopBar'
 import StatusBar from './components/StatusBar'
 import ConvertScreen from './components/ConvertScreen'
 import TransferPage from './pages/TransferPage'
-import FilesPage from './pages/FilesPage'
+//import FilesPage from './pages/FilesPage'
 import SettingsPage from './pages/SettingsPage'
 import { useConversionEvents } from './hooks/useConversionEvents'
 import { useTransferEvents } from './hooks/useTransferEvents'
@@ -47,7 +47,7 @@ export default function App() {
             <Route path="/" element={
               <ConvertScreen />} />
             <Route path="/transfer" element={<TransferPage />} />
-            <Route path="/files" element={<FilesPage />} />
+            {/* <Route path="/files" element={<FilesPage />} /> */}
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

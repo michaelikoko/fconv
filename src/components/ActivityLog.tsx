@@ -1,4 +1,5 @@
 /*
+Example log entries for testing:
 const LOGS = [
   { time: '14:22:01', message: 'INITIALIZING CORE_ENGINE... OK', level: 'success' },
   { time: '14:22:03', message: 'LOADING FF_MPEG BINARIES VERSION 6.0.2', level: 'default' },
@@ -15,7 +16,6 @@ const LEVEL_STYLE: Record<string, string> = {
   error:   'text-error',
   default: 'text-neutral-content',
 }
-
 
 export default function ActivityLog() {
   const { logs } = useConversionStore()

@@ -16,28 +16,28 @@ interface UploadingFile {
 
 
 function formatSize(bytes: number): string {
-  if (bytes < 1024)              return `${bytes} B`
-  if (bytes < 1024 * 1024)       return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
 function getFileIcon(name: string): React.ReactNode {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  if (['mp4','mkv','mov','avi','webm','gif'].includes(ext)) return <FileVideoIcon size={20} />
-  if (['mp3','wav','ogg','flac','aac','opus','m4a'].includes(ext)) return <FileAudioIcon size={20} />
-  if (['jpg','jpeg','png','webp','bmp'].includes(ext)) return <FileImageIcon size={20} />
-  if (['pdf','docx','doc','txt'].includes(ext)) return <FileTextIcon size={20} />
+  if (['mp4', 'mkv', 'mov', 'avi', 'webm', 'gif'].includes(ext)) return <FileVideoIcon size={20} />
+  if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'opus', 'm4a'].includes(ext)) return <FileAudioIcon size={20} />
+  if (['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(ext)) return <FileImageIcon size={20} />
+  if (['pdf', 'docx', 'doc', 'txt'].includes(ext)) return <FileTextIcon size={20} />
   return <FileIcon size={20} />
 }
 
 
 export default function App() {
-  const [availableFiles, setAvailableFiles]   = useState<AvailableFile[]>([])
-  const [uploadingFiles, setUploadingFiles]   = useState<UploadingFile[]>([])
-  const [connected, setConnected]             = useState(false)
-  const fileInputRef                          = useRef<HTMLInputElement>(null)
-  const eventSourceRef                        = useRef<EventSource | null>(null)
+  const [availableFiles, setAvailableFiles] = useState<AvailableFile[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
+  const [connected, setConnected] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
     const es = new EventSource('/api/events')
@@ -58,7 +58,7 @@ export default function App() {
 
   const fetchAvailableFiles = async () => {
     try {
-      const res   = await fetch('/api/files')
+      const res = await fetch('/api/files')
       const files = await res.json()
       setAvailableFiles(files)
     } catch {
@@ -68,7 +68,7 @@ export default function App() {
 
   useEffect(() => { fetchAvailableFiles() }, [])
 
-  
+
   const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
@@ -127,7 +127,7 @@ export default function App() {
 
   const handleDownload = (file: AvailableFile) => {
     const a = document.createElement('a')
-    a.href     = `/api/download/${file.id}`
+    a.href = `/api/download/${file.id}`
     a.download = file.name
     a.click()
   }
@@ -141,10 +141,11 @@ export default function App() {
         padding: '12px 16px', borderBottom: '1px solid var(--border)',
         background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10,
       }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline' }}>
           <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14, letterSpacing: '0.1em' }}>
-            FCONV
+            FC
           </span>
+          <span className="text-base-content">ONV</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{

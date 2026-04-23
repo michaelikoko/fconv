@@ -45,7 +45,7 @@ export default function ProgressBar() {
                      disabled:opacity-30 disabled:cursor-not-allowed
                      enabled:hover:border-error enabled:hover:text-error enabled:cursor-pointer"
         >
-          ×
+          X
         </button>
       </div>
     </div>

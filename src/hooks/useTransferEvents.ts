@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { IpcRendererEvent } from 'electron'
-import { useTransferStore, StagedFile, ReceivedFile, SentFile, UploadingFile } from '../store/transferStore'
+import { useTransferStore, type UploadingFile } from '../store/transferStore'
 import crypto from 'crypto'
+import type { ReceivedFile, SentFile, StagedFile } from '../../shared/types'
 
 export function useTransferEvents() {
     const {
@@ -19,7 +20,6 @@ export function useTransferEvents() {
 
     useEffect(() => {
         const onServerReady = (_e: IpcRendererEvent, data: { ip: string, port: number }) => {
-            console.log(`transfer:server-ready channel: ${data}`)
             setLocalIP(data.ip)
             setPort(data.port)
             setServerRunning(true)
@@ -33,7 +33,6 @@ export function useTransferEvents() {
             data.files.forEach((file) => {
                 addStagedFile(file)
             })
-            //addStagedFile(data.file)
         }
 
         const onFileUnstaged = (_e: IpcRendererEvent, data: { id: crypto.UUID }) => {
@@ -51,7 +50,6 @@ export function useTransferEvents() {
                     size: f.size,
                     savedPath: f.savedPath,
                     receivedAt: new Date(f.receivedAt),
-                    //receivedAt: f.receivedAt,
                 })
             })
         }
