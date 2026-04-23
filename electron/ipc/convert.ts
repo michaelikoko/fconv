@@ -33,7 +33,11 @@ function buildFFmpegArgs(
   if (settings.threadCount > 0) {
     args.push('-threads', String(settings.threadCount))
   }
-
+  const videoOutputExts = ['mp4', 'mkv', 'mov', 'avi', 'webm', 'm4v', 'flv']
+  const outputExt = outputPath.split('.').pop()?.toLowerCase() ?? ''
+  if (videoOutputExts.includes(outputExt)) {
+    args.push('-preset', 'fast')
+  }
   args.push(outputPath)
   return args
 }

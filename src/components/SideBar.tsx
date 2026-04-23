@@ -1,4 +1,4 @@
-import { RefreshCw, ArrowLeftRight, FolderOpen, Settings } from 'lucide-react'
+import { RefreshCw, ArrowLeftRight, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavItem { id: string; label: string; icon: LucideIcon }
@@ -6,7 +6,7 @@ interface NavItem { id: string; label: string; icon: LucideIcon }
 const NAV_ITEMS: NavItem[] = [
   { id: 'convert',  label: 'CONVERT',  icon: RefreshCw      },
   { id: 'transfer', label: 'TRANSFER', icon: ArrowLeftRight  },
-  { id: 'files',    label: 'FILES',    icon: FolderOpen      },
+  //{ id: 'files',    label: 'FILES',    icon: FolderOpen      },
 ]
 
 interface SideBarProps {

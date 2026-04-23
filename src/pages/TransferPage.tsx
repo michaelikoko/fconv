@@ -114,16 +114,34 @@ export default function TransferPage() {
         {/* QR code */}
         <QRPanel url={serverUrl} />
 
-        {/* Recent received — last 3 only, acts as a live ticker */}
-        <div className="border-t border-base-300 px-5 py-2.5 shrink-0">
-          <span className="text-[9px] font-mono text-neutral-content tracking-[0.2em]">
-            RECEIVED_QUEUE
-          </span>
-        </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div>Put Something Here later</div>
-          {
+<div className="flex-1 px-5 py-4 flex flex-col gap-4">
+  <div className="space-y-3">
+    <p className="text-[9px] font-mono text-neutral-content tracking-[0.15em]">
+      HOW_TO_CONNECT
+    </p>
+    {[
+      ['01', 'Scan the QR code with your phone camera'],
+      ['02', 'Open the link in your phone browser'],
+      ['03', 'Tap SEND TO LAPTOP to upload files'],
+      ['04', 'Files staged here appear in your phone for download'],
+    ].map(([num, text]) => (
+      <div key={num} className="flex items-start gap-3">
+        <span className="text-primary font-mono text-[9px] shrink-0 mt-0.5">{num}</span>
+        <span className="text-neutral-content font-mono text-[9px] tracking-wider leading-4">
+          {text}
+        </span>
+      </div>
+    ))}
+  </div>
+
+  <div className="border-t border-base-300 pt-4 mt-auto">
+    <p className="text-[9px] font-mono text-neutral-content tracking-wider leading-4">
+      Phone and laptop must be on the same WiFi network
+    </p>
+  </div>
+
+{
             /**
              * 
             <ReceivedFileList compact maxItems={3} />

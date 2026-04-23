@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+import React, { useState, useEffect, useRef } from 'react'
+import { FileAudioIcon, FileIcon, FileImageIcon, FileTextIcon, FileVideoIcon } from 'lucide-react'
 
 interface AvailableFile {
   id: string
@@ -15,7 +14,6 @@ interface UploadingFile {
   status: 'uploading' | 'done' | 'error'
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatSize(bytes: number): string {
   if (bytes < 1024)              return `${bytes} B`
@@ -24,16 +22,15 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-function getFileIcon(name: string): string {
+function getFileIcon(name: string): React.ReactNode {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  if (['mp4','mkv','mov','avi','webm','gif'].includes(ext)) return '🎬'
-  if (['mp3','wav','ogg','flac','aac','opus','m4a'].includes(ext)) return '🎵'
-  if (['jpg','jpeg','png','webp','bmp'].includes(ext)) return '🖼'
-  if (['pdf','docx','doc','txt'].includes(ext)) return '📄'
-  return '📁'
+  if (['mp4','mkv','mov','avi','webm','gif'].includes(ext)) return <FileVideoIcon size={20} />
+  if (['mp3','wav','ogg','flac','aac','opus','m4a'].includes(ext)) return <FileAudioIcon size={20} />
+  if (['jpg','jpeg','png','webp','bmp'].includes(ext)) return <FileImageIcon size={20} />
+  if (['pdf','docx','doc','txt'].includes(ext)) return <FileTextIcon size={20} />
+  return <FileIcon size={20} />
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [availableFiles, setAvailableFiles]   = useState<AvailableFile[]>([])
@@ -42,7 +39,6 @@ export default function App() {
   const fileInputRef                          = useRef<HTMLInputElement>(null)
   const eventSourceRef                        = useRef<EventSource | null>(null)
 
-  // ── SSE connection ──────────────────────────────────────────────────────────
   useEffect(() => {
     const es = new EventSource('/api/events')
     eventSourceRef.current = es
@@ -60,7 +56,6 @@ export default function App() {
     return () => es.close()
   }, [])
 
-  // ── Fetch available downloads ───────────────────────────────────────────────
   const fetchAvailableFiles = async () => {
     try {
       const res   = await fetch('/api/files')
@@ -73,7 +68,7 @@ export default function App() {
 
   useEffect(() => { fetchAvailableFiles() }, [])
 
-  // ── Upload handler ──────────────────────────────────────────────────────────
+  
   const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
@@ -123,12 +118,13 @@ export default function App() {
         }
 
         xhr.open('POST', '/api/upload')
+        xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name))
+
         xhr.send(formData)
       })
     }
   }
 
-  // ── Download handler ────────────────────────────────────────────────────────
   const handleDownload = (file: AvailableFile) => {
     const a = document.createElement('a')
     a.href     = `/api/download/${file.id}`
@@ -136,7 +132,6 @@ export default function App() {
     a.click()
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
 
@@ -164,7 +159,6 @@ export default function App() {
 
       <main style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* ── SEND TO LAPTOP ───────────────────────────────────────────── */}
         <section>
           <input
             ref={fileInputRef}
@@ -196,7 +190,6 @@ export default function App() {
           </button>
         </section>
 
-        {/* ── UPLOAD QUEUE ─────────────────────────────────────────────── */}
         {uploadingFiles.length > 0 && (
           <section>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -249,7 +242,6 @@ export default function App() {
           </section>
         )}
 
-        {/* ── AVAILABLE DOWNLOADS ──────────────────────────────────────── */}
         <section>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em' }}>
@@ -318,7 +310,6 @@ export default function App() {
 
       </main>
 
-      {/* Footer */}
       <footer style={{
         padding: '10px 16px', borderTop: '1px solid var(--border)',
         background: 'var(--surface)',

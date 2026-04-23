@@ -120,15 +120,18 @@ function trackUploadProgress(
     if (!totalBytes) return // can't track without a content-length
 
     let receivedBytes = 0
+    let lastEmittedPct = -1  // track last emitted value to avoid duplicate events
 
-    // Broadcast start so desktop shows the indicator immediately
+    // Broadcast start immediately so the desktop indicator appears at 0%
     broadcastEvent('upload-progress', { id: uploadId, fileName, progress: 0 })
 
     req.on('data', (chunk: Buffer) => {
         receivedBytes += chunk.length
         const progress = Math.min(Math.round((receivedBytes / totalBytes) * 100), 99)
-        // Throttle — only send every ~5% to avoid flooding the IPC channel
-        if (progress % 5 === 0) {
+
+        // Emit every 5% but never skip — also always emit if this is the first real chunk
+        if (progress >= lastEmittedPct + 5 || (lastEmittedPct === 0 && progress > 0)) {
+            lastEmittedPct = progress
             broadcastEvent('upload-progress', { id: uploadId, fileName, progress })
         }
     })
@@ -136,18 +139,23 @@ function trackUploadProgress(
 
 let server: Server | null = null
 //const RECEIVED_DIRECTORY = path.join(os.homedir(), 'Downloads', 'FCONV', 'received')
-const RECEIVED_DIRECTORY = resolvedReceivedDir(getSettings()) 
-
-fs.mkdirSync(RECEIVED_DIRECTORY, { recursive: true })
+//const RECEIVED_DIRECTORY = resolvedReceivedDir(getSettings()) 
+//fs.mkdirSync(RECEIVED_DIRECTORY, { recursive: true })
 
 const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, RECEIVED_DIRECTORY),
+    destination: (_req, _file, cb) => {
+        const dir = resolvedReceivedDir(getSettings())
+        fs.mkdirSync(dir, { recursive: true })
+        cb(null, dir)
+    },
     filename: (_req, file, cb) => {
         const ext = path.extname(file.originalname)
+        const dir = resolvedReceivedDir(getSettings())
+
         const resolved = resolveOutputPath(
-            path.join(RECEIVED_DIRECTORY, file.originalname),
+            path.join(dir, file.originalname),
             ext,
-            RECEIVED_DIRECTORY,
+            dir,
         )
         cb(null, path.basename(resolved))
         //cb(null, file.originalname)
@@ -169,6 +177,8 @@ export function startTransferServer() {
         const uploadId = crypto.randomUUID()
         const fileName = req.headers['x-file-name'] as string || 'unknown'
 
+        console.log(req)
+        console.log('Filename upload', fileName)
         // Start tracking upload progress before multer consumes the stream
         trackUploadProgress(req, uploadId, decodeURIComponent(fileName))
 

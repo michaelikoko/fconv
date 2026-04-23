@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { IpcRendererEvent } from 'electron'
-import { useTransferStore, StagedFile, ReceivedFile, SentFile } from '../store/transferStore'
+import { useTransferStore, StagedFile, ReceivedFile, SentFile, UploadingFile } from '../store/transferStore'
 import crypto from 'crypto'
 
 export function useTransferEvents() {
@@ -50,7 +50,8 @@ export function useTransferEvents() {
                     name: f.name,
                     size: f.size,
                     savedPath: f.savedPath,
-                    receivedAt: f.receivedAt,
+                    receivedAt: new Date(f.receivedAt),
+                    //receivedAt: f.receivedAt,
                 })
             })
         }
@@ -68,9 +69,9 @@ export function useTransferEvents() {
         // Phone started uploading a file — show progress indicator
         const onUploadProgress = (
             _e: IpcRendererEvent,
-            data: { id: crypto.UUID; name: string; progress: number },
+            data: UploadingFile
         ) => {
-            setUploadProgress(data.id, data.name, data.progress)
+            setUploadProgress(data.id, data.fileName, data.progress)
         }
 
 

@@ -1,4 +1,4 @@
-import { FileImageIcon, FileMusicIcon, FileUp, FileVideoCameraIcon } from 'lucide-react'
+import { FileImageIcon, FileMusicIcon, FileTextIcon, FileUp, FileVideoCameraIcon } from 'lucide-react'
 import { detectFileType, formatFileSize } from '../utils/fileType'
 import { type FileType, useConversionStore } from '../store/conversionStore'
 
@@ -34,6 +34,7 @@ function getFileTypeIcon(fileType: FileType, converting: boolean) {
   if (fileType === 'video') return <FileVideoCameraIcon size={40} strokeWidth={1} className={cls} />
   if (fileType === 'audio') return <FileMusicIcon size={40} strokeWidth={1} className={cls} />
   if (fileType === 'image') return <FileImageIcon size={40} strokeWidth={1} className={cls} />
+  if (fileType === 'document') return <FileTextIcon size={40} strokeWidth={1} className={cls} />
   return <FileUp size={40} strokeWidth={1} className={cls} />
 }
 

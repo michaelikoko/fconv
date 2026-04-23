@@ -13,6 +13,7 @@ function timeAgo(date: Date): string {
 
 
 function UploadingRow({ name, progress }: { name: string; progress: number }) {
+  //console.log('rendering uploading row', name, progress)
   return (
     <div className="flex items-center gap-3 px-5 py-3 border-b border-base-300 bg-primary/3">
       <div className="w-7 h-7 bg-base-300 border border-primary/30 flex items-center justify-center shrink-0">
