@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { app, ipcMain, shell } from 'electron'
 import { isLibreOfficeAvailable, getLibreOfficePath } from '../utils/libreoffice'
 
 
@@ -7,6 +7,7 @@ function handleLibreOfficeAvailability() {
   return {
     libreOfficeAvailable: isLibreOfficeAvailable(),
     libreOfficePath:      loPath ?? null,
+    appVersion: app.getVersion(),
     //libreOfficeAvailable: false,
     //libreOfficePath:      null,
   }

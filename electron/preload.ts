@@ -68,6 +68,11 @@ contextBridge.exposeInMainWorld('unstageFile', async (id: string) => {
   return result
 })
 
+contextBridge.exposeInMainWorld('restartTransferServer', async () => {
+  const result = await ipcRenderer.invoke('transfer:restart-server')
+  return result
+})
+
 // Settings
 contextBridge.exposeInMainWorld('getSettings', async () => {
   const result = await ipcRenderer.invoke('settings:get')

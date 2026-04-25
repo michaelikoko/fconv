@@ -34,6 +34,18 @@ export default function TransferPage() {
                 {isServerRunning ? 'SERVER_ONLINE' : 'SERVER_OFFLINE'}
               </span>
             </div>
+
+            {/* Restart button */}
+            <button
+              onClick={async () => await window.restartTransferServer()}
+              disabled={!isServerRunning}
+              className={`text-[9px] font-mono tracking-widest px-2 py-0.5
+               text-neutral-content hover:border-primary hover:text-primary transition-colors
+               ${!isServerRunning ? 'cursor-not-allowed opacity-50' : 'cursor-pointer border border-base-300'}`}
+            >
+              RESTART
+            </button>
+
             <div className="flex items-center gap-1.5">
               <Smartphone
                 size={11}
@@ -119,10 +131,11 @@ export default function TransferPage() {
               HOW_TO_CONNECT
             </p>
             {[
-              ['01', 'Scan the QR code with your phone camera'],
-              ['02', 'Open the link in your phone browser'],
-              ['03', 'Tap SEND TO LAPTOP to upload files'],
-              ['04', 'Files staged here appear in your phone for download'],
+              ['01', 'Connect your phone to the same WiFi network as your laptop'],
+              ['02', 'Scan the QR code with your phone camera'],
+              ['03', 'Open the link in your phone browser'],
+              ['04', 'Tap SEND TO LAPTOP to upload files'],
+              ['05', 'Files staged here appear in your phone for download'],
             ].map(([num, text]) => (
               <div key={num} className="flex items-start gap-3">
                 <span className="text-primary font-mono text-[9px] shrink-0 mt-0.5">{num}</span>
@@ -135,7 +148,7 @@ export default function TransferPage() {
 
           <div className="border-t border-base-300 pt-4 mt-auto">
             <p className="text-[9px] font-mono text-neutral-content tracking-wider leading-4">
-              Phone and laptop must be on the same WiFi network
+              Phone and laptop must be on the same WiFi network. If you have connectivity issues, try restarting the transfer server or check your firewall settings.
             </p>
           </div>
         </div>

@@ -123,7 +123,7 @@ export function getFFmpegPath(): string {
       :                                 'ffmpeg-linux'
     const bin = path.join(process.resourcesPath, 'ffmpeg', name)
     // Ensure executable permissions on Linux/macOS
-    if (platform !== 'win32') fs.chmodSync(bin, 0o755)
+    //if (platform !== 'win32') fs.chmodSync(bin, 0o755) This breaks conversion in the Linux build. I added chmod +x resources/ffmpeg/ffmpeg-linux manually in the build script
     return bin
   }
   // Fall back to system FFmpeg during development

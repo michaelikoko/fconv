@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.michaelikoko.fconv",
   "asar": true,
-  "productName": "YourAppName",
+  "productName": "FCONV",
   "directories": {
     "output": "release/${version}"
   },
@@ -15,7 +15,8 @@
     "target": [
       "dmg"
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    "artifactName": "${productName}-Mac-${version}-Installer.${ext}",
+    "icon": "build/icon.icns"
   },
   "win": {
     "target": [
@@ -26,7 +27,8 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}",
+    "icon": "build/icon.ico"
   },
   "nsis": {
     "oneClick": false,
@@ -38,9 +40,13 @@
     "target": [
       "AppImage"
     ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
+    "artifactName": "${productName}-Linux-${version}.${ext}",
+    "icon": "build/icon.png",
+      "category": "Utility",
+  "description": "Local file converter and phone transfer tool"
   },
     extraResources: [
-    { from: "phone-ui-dist/", to: "phone-ui-dist/" }
+    { "from": "phone-ui-dist/", "to": "phone-ui-dist/" },
+    { "from": "resources/ffmpeg/", "to": "ffmpeg/" }
   ]
 }

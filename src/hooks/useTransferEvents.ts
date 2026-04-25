@@ -25,6 +25,13 @@ export function useTransferEvents() {
             setServerRunning(true)
         }
 
+        const onServerStopped = () => {
+            setServerRunning(false)
+            setLocalIP('—.—.—.—')
+            setPort(0)
+            setConnectedClients(0)
+        }
+
         const onClientConnected = (_e: IpcRendererEvent, data: { count: number }) => {
             setConnectedClients(data.count)
         }
@@ -80,6 +87,7 @@ export function useTransferEvents() {
 
 
         window.ipcRenderer.on('transfer:server-ready', onServerReady)
+        window.ipcRenderer.on('transfer:server-stopped', onServerStopped)
         window.ipcRenderer.on('transfer:client-connected', onClientConnected)
         window.ipcRenderer.on('transfer:files-staged', onFilesStaged)
         window.ipcRenderer.on('transfer:files-unstaged', onFileUnstaged)
@@ -90,6 +98,7 @@ export function useTransferEvents() {
 
         return () => {
             window.ipcRenderer.off('transfer:server-ready', onServerReady)
+            window.ipcRenderer.off('transfer:server-stopped', onServerStopped)
             window.ipcRenderer.off('transfer:client-connected', onClientConnected)
             window.ipcRenderer.off('transfer:files-staged', onFilesStaged)
             window.ipcRenderer.off('transfer:files-unstaged', onFileUnstaged)

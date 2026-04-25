@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
+//import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { registerAllHandlers } from './ipc/index'
 import { serverReady, stopTransferServer } from './ipc/transfer'
 
-const require = createRequire(import.meta.url)
+//const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -77,6 +77,6 @@ app.whenReady().then(async () => {
   const [serverInfo ] = await Promise.all([
     serverReady,
     new Promise(resolve => win?.webContents.once('did-finish-load', resolve))
-  ])
+  ]) // Wait for both the server to be ready and the window to finish loading before sending the server info to the renderer
   win?.webContents.send('transfer:server-ready', serverInfo)
 }) 

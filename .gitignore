@@ -27,3 +27,5 @@ dist-electron/
 phone-ui-dist/
 *.txt
 .codex
+# The resources directory contains the ffmpeg binaries, which are large and can be downloaded separately. 
+resources/ 

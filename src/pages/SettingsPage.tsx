@@ -316,11 +316,11 @@ export default function SettingsPage() {
       {/* Footer */}
       <div className="px-5 py-4 border-t border-base-300 flex items-center justify-between shrink-0">
         <div className="flex flex-col gap-0.5">
-          <span className="text-neutral-content font-mono text-[9px] tracking-widest">
+          <span className="text-info font-mono text-[9px] tracking-widest">
             {isDirty ? 'UNSAVED_CHANGES' : 'ALL_CHANGES_SAVED'}
           </span>
-          <span className="text-base-300 font-mono text-[9px] tracking-widest">
-            PORT and PATH changes require restart
+          <span className="text-neutral-content/80 font-mono text-[9px] tracking-widest">
+            PORT and PATH changes require server restart
           </span>
         </div>
 

@@ -99,7 +99,7 @@ export function saveSettings(settings: AppSettings): void {
 
   try {
     fs.writeFileSync(filePath, JSON.stringify(settings, null, 2), 'utf-8')
-    console.log('Settings saved to', filePath)
+    //console.log('Settings saved to', filePath)
   } catch (err) {
     console.error('Failed to save settings:', err)
     throw err

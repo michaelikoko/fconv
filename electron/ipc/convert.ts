@@ -31,7 +31,6 @@ function runFFmpegConversion(
  *   'conversion-error'     → { message }
  *   'conversion-cancelled' → (no payload)
  */
-
   const ffmpegPath = getFFmpegPath()
   const args = buildFFmpegArgs(inputPath, outputPath)
 
@@ -153,7 +152,13 @@ async function handleConvertFile(
       level: 'info',
     })
 
-    runFFmpegConversion(inputPath, outputPath, win)
+    try {
+       runFFmpegConversion(inputPath, outputPath, win)
+    } catch (error) {
+      win.webContents.send('conversion-error', {
+        message: (error as Error).message,
+      })
+    }
   }
 }
 

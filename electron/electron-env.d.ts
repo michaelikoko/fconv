@@ -27,7 +27,7 @@ interface Window {
 
   // App
   openExternal: (url: string) => Promise<void>
-  checkLibreOfficeAvailability: () => Promise<{ libreOfficeAvailable: boolean, libreOfficePath: string | null }>
+  checkLibreOfficeAvailability: () => Promise<{ libreOfficeAvailable: boolean, libreOfficePath: string | null, appVersion: string }>
 
   // Files
   openFile: () => Promise<{ path: string; size: number } | undefined>
@@ -41,6 +41,7 @@ interface Window {
   stageFile: () => Promise<import('./ipc/transfer').StagedFile[] | null>
   unstageFile: (id: import('crypto').UUID) => Promise<void>
   getSettings: () => Promise<import('./utils/settings').AppSettings>
+  restartTransferServer: () => Promise<void>
   
   // Settings
   pickDirectorySettings: (dialogTitle: string) => Promise<string | null>

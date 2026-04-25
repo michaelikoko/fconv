@@ -1,5 +1,6 @@
 import { RefreshCw, ArrowLeftRight, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useAppStore } from '../store/appStore';
 
 interface NavItem { id: string; label: string; icon: LucideIcon }
 
@@ -35,6 +36,8 @@ function NavBtn({ item, active, onClick }: { item: NavItem; active: boolean; onC
 }
 
 export default function SideBar({ active, onNavigate }: SideBarProps) {
+  const { appVersion } = useAppStore()
+
   return (
     <aside className="drag-region flex flex-col items-center w-18 bg-base-200 border-r border-base-300 h-full py-4 shrink-0">
       {/* Logo */}
@@ -43,7 +46,9 @@ export default function SideBar({ active, onNavigate }: SideBarProps) {
           <span className="text-primary">FC</span>
           <span className="text-base-content">ONV</span>
         </div>
-        <div className="text-neutral-content text-[9px] tracking-wider mt-1">V1.0.0</div>
+        <div className="text-neutral-content text-[9px] tracking-wider mt-1">
+          { appVersion }
+        </div>
       </div>
 
       {/* Main nav */}
