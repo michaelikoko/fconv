@@ -29,3 +29,5 @@ phone-ui-dist/
 .codex
 # The resources directory contains the ffmpeg binaries, which are large and can be downloaded separately. 
 resources/ 
+# The release directory contains the packaged application, which can be large and is not necessary to include in version control.
+release/
